@@ -2,7 +2,7 @@ import {
   VISDIFF_BASE,
   createVisdiffHandler,
   injectReactSource
-} from "./chunk-UOZZAGRJ.js";
+} from "./chunk-Y7PD535Q.js";
 
 // src/vite-plugin.ts
 function visdiffVite(options = {}) {

@@ -64,14 +64,11 @@ export function summarizeTask(task: VisdiffTask, root: string): string {
 
 const distDir = path.dirname(fileURLToPath(import.meta.url))
 
-let clientCache: string | null = null
 let clientWarned = false
 
 async function loadClient(): Promise<string> {
-  if (clientCache !== null) return clientCache
   try {
-    clientCache = await readFile(path.join(distDir, CLIENT_PATH), 'utf8')
-    return clientCache
+    return await readFile(path.join(distDir, CLIENT_PATH), 'utf8')
   } catch {
     if (!clientWarned) {
       clientWarned = true

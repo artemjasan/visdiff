@@ -1,7 +1,7 @@
 import {
   injectReactSource,
   startStandaloneServer
-} from "./chunk-UOZZAGRJ.js";
+} from "./chunk-Y7PD535Q.js";
 
 // src/plugin.ts
 import { createUnplugin } from "unplugin";

@@ -19,8 +19,9 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173). On macOS, run `open http://
 1. Click the floating **visdiff** button at the bottom right.
 2. Click an element. The overlay shows its source, for example `src/App.tsx:21:11`.
 3. Drag the element or use its right, bottom, or corner resize handle. Every completed gesture is staged automatically; no per-edit save click.
-4. Repeat on as many elements as you need; every gesture accumulates in the same batch. The translucent panel lists each CSS change separately, and `×` removes only that row. Drag its header to move it (the panel stays inside the viewport); **Hide** collapses it to a **Show changes** button at the same position.
-5. Click **Apply** once to send the whole batch. The Vite terminal prints a summary, and the JSON batch is appended to `examples/vite-react/.visdiff/pending.json`.5. For a line-specific note, click the comment icon on any pending row to open a tiny inline dialog and attach a note to that exact change. The comment travels with the matching edit entry in the queued MCP task.
+4. Shift-click sibling elements to add or remove them from a multi-selection. When at least two selected elements share the same direct parent, use the Layout panel to preview Flex/Grid, direction, justify, align, and gap values on that parent.
+5. Repeat edits on as many elements as you need; every gesture accumulates in the same batch. The translucent panel lists each CSS change separately, and `×` removes only that row. Drag its header to move it (the panel stays inside the viewport); **Hide** collapses it to a **Show changes** button at the same position.
+6. Click **Apply** once to send the whole batch. The Vite terminal prints a summary, and the JSON batch is appended to `examples/vite-react/.visdiff/pending.json`. For a line-specific note, click the comment icon on any pending row to open a tiny inline dialog and attach a note to that exact change. The comment travels with the matching edit entry in the queued MCP task.
 **Reset** reverts the current unsaved preview. **Esc** or `✕` cancels the current selection; already staged rows remain in the batch. **Clear** in the batch panel discards the whole unsent batch. After **Apply**, preview styles stay on the page until HMR replaces them with the agent's code changes.
 
 Inspect or clear queued batches from the repository root:
@@ -44,7 +45,11 @@ OpenCode, OMP, and other MCP clients that support local stdio can launch the sam
 
 ## Architecture
 
-- `packages/visdiff/src/client.ts` — browser overlay, selection, drag/resize, accumulated change list.
+- `packages/visdiff/src/client.ts` — browser session controller: selection, drag/resize, staged changes, and save flow.
+- `packages/visdiff/src/client/overlay.ts` — browser UI adapter: mounts overlay elements, renders the pending batch, and wires UI actions.
+- `packages/visdiff/src/client/styles.ts` — browser overlay styles.
+- `packages/visdiff/src/client/source.ts` — framework source lookup and DOM selector descriptions.
+- `packages/visdiff/src/client/model.ts` — client edit types and pure edit helpers.
 - `packages/visdiff/src/source-inject.ts` — dev-only Babel transform adds `data-visdiff-src` to JSX/TSX before framework compilation. React 19 source anchors do not rely on private Fiber fields.
 - `packages/visdiff/src/vite-plugin.ts` — Vite dev adapter: same-origin HTTP endpoint, client injection, and source transform.
 - `packages/visdiff/src/plugin.ts` — universal unplugin factory for other supported bundlers.

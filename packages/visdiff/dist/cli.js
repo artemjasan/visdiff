@@ -215,13 +215,10 @@ function summarizeTask(task, root) {
   return lines.join("\n");
 }
 var distDir = path2.dirname(fileURLToPath(import.meta.url));
-var clientCache = null;
 var clientWarned = false;
 async function loadClient() {
-  if (clientCache !== null) return clientCache;
   try {
-    clientCache = await readFile2(path2.join(distDir, CLIENT_PATH), "utf8");
-    return clientCache;
+    return await readFile2(path2.join(distDir, CLIENT_PATH), "utf8");
   } catch {
     if (!clientWarned) {
       clientWarned = true;

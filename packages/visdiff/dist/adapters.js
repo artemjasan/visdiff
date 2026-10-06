@@ -1,7 +1,7 @@
 import {
   unplugin
-} from "./chunk-UEJBFTVV.js";
-import "./chunk-UOZZAGRJ.js";
+} from "./chunk-ZSXPN7LC.js";
+import "./chunk-Y7PD535Q.js";
 
 // src/adapters.ts
 var visdiffRollup = unplugin.rollup;
