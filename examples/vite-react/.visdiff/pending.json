@@ -1,0 +1,298 @@
+[
+  {
+    "url": "http://127.0.0.1:5173/",
+    "viewport": {
+      "width": 1688,
+      "height": 1329
+    },
+    "changes": [
+      {
+        "element": {
+          "tag": "div",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2)",
+          "text": "Project overview Just nowSpring launchEverything your team needs, moving in one ",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 23,
+            "column": 9
+          }
+        },
+        "edits": [
+          {
+            "property": "transform",
+            "from": "matrix(0.999781, 0.0209424, -0.0209424, 0.999781, 0, 0)",
+            "to": "translate(3px, 69px) matrix(0.999781, 0.0209424, -0.0209424, 0.999781, 0, 0)",
+            "kind": "move"
+          }
+        ]
+      },
+      {
+        "element": {
+          "tag": "span",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > span:nth-of-type(3)",
+          "text": "+3",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 29,
+            "column": 125
+          }
+        },
+        "edits": [
+          {
+            "property": "transform",
+            "from": "none",
+            "to": "translate(34px, 5px)",
+            "kind": "move"
+          }
+        ]
+      },
+      {
+        "element": {
+          "tag": "span",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > span:nth-of-type(2)",
+          "text": "JK",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 29,
+            "column": 82
+          }
+        },
+        "edits": [
+          {
+            "property": "transform",
+            "from": "none",
+            "to": "translate(3px, 1px) matrix(1, 0, 0, 1, 26, 4)",
+            "kind": "move"
+          }
+        ]
+      },
+      {
+        "element": {
+          "tag": "span",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > span:nth-of-type(1)",
+          "text": "AM",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 29,
+            "column": 39
+          }
+        },
+        "edits": [
+          {
+            "property": "transform",
+            "from": "none",
+            "to": "translate(221px, 18px) matrix(1, 0, 0, 1, -206, -16)",
+            "kind": "move"
+          },
+          {
+            "property": "width",
+            "from": "27px",
+            "to": "40px",
+            "kind": "resize"
+          },
+          {
+            "property": "height",
+            "from": "27px",
+            "to": "37px",
+            "kind": "resize"
+          }
+        ]
+      },
+      {
+        "element": {
+          "tag": "h2",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2) > h2:nth-of-type(1)",
+          "text": "Spring launch",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 25,
+            "column": 11
+          }
+        },
+        "edits": [
+          {
+            "property": "width",
+            "from": "369.281px",
+            "to": "176px",
+            "kind": "resize"
+          }
+        ]
+      },
+      {
+        "element": {
+          "tag": "p",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2) > p:nth-of-type(1)",
+          "text": "Everything your team needs, moving in one direction.",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 26,
+            "column": 11
+          }
+        },
+        "edits": [
+          {
+            "property": "transform",
+            "from": "none",
+            "to": "translate(1px, 13px)",
+            "kind": "move"
+          }
+        ]
+      }
+    ],
+    "id": "vdt_muwyk6k5_6f5116",
+    "receivedAt": "2026-10-06T17:34:06.389Z"
+  },
+  {
+    "url": "http://127.0.0.1:5173/#pricing",
+    "viewport": {
+      "width": 1688,
+      "height": 1329
+    },
+    "changes": [
+      {
+        "element": {
+          "tag": "div",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4)",
+          "text": "AMJK+3Due Oct 24",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 29,
+            "column": 11
+          }
+        },
+        "edits": [
+          {
+            "property": "transform",
+            "from": "none",
+            "to": "translate(49px, 1px)",
+            "kind": "move"
+          }
+        ]
+      },
+      {
+        "element": {
+          "tag": "p",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2) > p:nth-of-type(1)",
+          "text": "Everything your team needs, moving in one direction.",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 26,
+            "column": 11
+          }
+        },
+        "edits": [
+          {
+            "property": "transform",
+            "from": "none",
+            "to": "translate(0px, 15px)",
+            "kind": "move"
+          }
+        ]
+      },
+      {
+        "element": {
+          "tag": "h2",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2) > h2:nth-of-type(1)",
+          "text": "Spring launch",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 25,
+            "column": 11
+          }
+        },
+        "edits": [
+          {
+            "property": "transform",
+            "from": "none",
+            "to": "translate(-1px, 15px)",
+            "kind": "move"
+          }
+        ]
+      }
+    ],
+    "id": "vdt_muwyqia3_f5226d",
+    "receivedAt": "2026-10-06T17:39:01.515Z"
+  },
+  {
+    "url": "http://127.0.0.1:5173/#pricing",
+    "viewport": {
+      "width": 1688,
+      "height": 1329
+    },
+    "changes": [
+      {
+        "element": {
+          "tag": "span",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) > span:nth-of-type(4)",
+          "text": "Due Oct 24",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 29,
+            "column": 168
+          }
+        },
+        "edits": [
+          {
+            "property": "transform",
+            "from": "none",
+            "to": "translate(-61px, -9px)",
+            "kind": "move"
+          }
+        ]
+      }
+    ],
+    "id": "vdt_muwyqn4b_529e4f",
+    "receivedAt": "2026-10-06T17:39:07.787Z"
+  },
+  {
+    "url": "http://127.0.0.1:5173/",
+    "viewport": {
+      "width": 1688,
+      "height": 1329
+    },
+    "changes": [
+      {
+        "element": {
+          "tag": "button",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(1)",
+          "text": "Explore the workspace →",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 21,
+            "column": 11
+          }
+        },
+        "edits": [
+          {
+            "property": "transform",
+            "from": "none",
+            "to": "translate(193px, -6px)",
+            "kind": "move"
+          }
+        ]
+      },
+      {
+        "element": {
+          "tag": "p",
+          "selector": "div#root > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(1) > p:nth-of-type(2)",
+          "text": "A calmer workspace for ambitious teams. Shape your next big thing without losing",
+          "source": {
+            "file": "src/App.tsx",
+            "line": 20,
+            "column": 11
+          }
+        },
+        "edits": [
+          {
+            "property": "transform",
+            "from": "none",
+            "to": "translate(5px, 12px)",
+            "kind": "move"
+          }
+        ]
+      }
+    ],
+    "id": "vdt_muwzne62_478ca2",
+    "receivedAt": "2026-10-06T18:04:35.834Z"
+  }
+]

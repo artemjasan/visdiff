@@ -1,0 +1,17 @@
+{
+  "name": "visdiff-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/visdiff",
+    "examples/vite-react"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace packages/visdiff",
+    "demo": "npm run dev --workspace examples/vite-react"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}
