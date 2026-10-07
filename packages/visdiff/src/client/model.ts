@@ -1,4 +1,4 @@
-import type { VisdiffEdit, VisdiffTaskElement } from '../types'
+import type { VisdiffEdit, VisdiffSelectionGroup, VisdiffTaskElement } from '../types'
 
 export interface SourceInfo {
   file: string
@@ -29,6 +29,7 @@ export type LayoutProp =
   | 'grid-template-columns'
 
 export type EditProp = 'transform' | 'width' | 'height' | LayoutProp
+export type EditMap = Partial<Record<EditProp, EditRecord>>
 export type DragMode = 'move' | 'w' | 'h' | 'wh'
 export const EDIT_PROPERTIES: readonly EditProp[] = [
   'transform',
@@ -53,6 +54,7 @@ export type RestoreSnapshot = Partial<Record<EditProp, InlineStyleSnapshot>>
 export interface StagedChange {
   element: VisdiffTaskElement
   edits: EditList
+  selectionGroups: VisdiffSelectionGroup[]
   target: HTMLElement | SVGElement
   restore: RestoreSnapshot
 }

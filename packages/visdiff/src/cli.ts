@@ -1,6 +1,7 @@
 import { runMcpServer } from './mcp'
 import { startStandaloneServer } from './server-core'
-import { clearPending, readPending } from './queue'
+import { clearPending, readPending, removePending } from './queue'
+import { AGENT_WORKFLOW } from './agent-guidance'
 
 const USAGE = `visdiff — browser visual edits → JSON tasks for coding agents
 
@@ -8,12 +9,14 @@ Usage: visdiff <command>
 
   mcp            Run the MCP stdio server (tools: visdiff_pending_tasks, visdiff_clear_tasks)
   tasks          Print pending visual tasks (.visdiff/pending.json)
-  clear          Clear the pending task queue
+  instructions   Print the recommended coding-agent workflow
+  clear [ids...] Remove only the listed task IDs; with no IDs, clear the entire queue
   serve [opts]   Start a standalone endpoint server (default port 9090) for non-plugin dev setups
   help           Show this help
 
-This package is not published to npm yet. In this checkout, use:
+From this repository checkout, use:
   npm exec --workspace examples/vite-react -- visdiff tasks
+  npm exec --workspace examples/vite-react -- visdiff instructions
   npm exec --workspace examples/vite-react -- visdiff mcp
 `
 
@@ -51,8 +54,17 @@ async function main(): Promise<void> {
     case 'tasks':
       await printTasks()
       return
+    case 'instructions':
+      console.log(AGENT_WORKFLOW)
+      return
     case 'clear': {
-      const cleared = await clearPending(process.cwd())
+      const ids = argv.slice(1).map((id) => id.trim())
+      if (ids.some((id) => id.length === 0)) {
+        throw new Error('Task IDs must not be empty.')
+      }
+      const cleared = ids.length > 0
+        ? await removePending(process.cwd(), ids)
+        : await clearPending(process.cwd())
       console.log(`[visdiff] cleared ${cleared} pending task(s)`)
       return
     }

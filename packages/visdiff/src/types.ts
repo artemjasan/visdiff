@@ -3,8 +3,8 @@ import { z } from 'zod'
 /** Source anchor resolved in the browser for a manipulated element. */
 export const VisdiffSourceSchema = z.object({
   file: z.string().min(1),
-  line: z.number().finite().optional(),
-  column: z.number().finite().optional(),
+  line: z.number().optional(),
+  column: z.number().optional(),
   component: z.string().optional(),
 })
 
@@ -37,18 +37,26 @@ export const VisdiffTaskElementSchema = z.object({
   source: z.union([VisdiffSourceSchema, z.null()]).default(null),
 })
 
+/** Links element changes that came from one multi-selection operation. */
+export const VisdiffSelectionGroupSchema = z.object({
+  id: z.string().min(1),
+  selectedCount: z.number().int().min(2),
+  role: z.enum(['member', 'layout-container']),
+})
+
 /** Changes made to one rendered element within a visual task batch. */
 export const VisdiffTaskChangeSchema = z.object({
   element: VisdiffTaskElementSchema,
   edits: z.array(VisdiffEditSchema).min(1),
+  selectionGroups: z.array(VisdiffSelectionGroupSchema).optional(),
 })
 
 /** What the browser overlay sends after accumulating one or more element edits. */
 export const VisdiffTaskPayloadSchema = z.object({
   url: z.string().min(1),
   viewport: z.object({
-    width: z.number().finite().nonnegative(),
-    height: z.number().finite().nonnegative(),
+    width: z.number().nonnegative(),
+    height: z.number().nonnegative(),
   }),
   changes: z.array(VisdiffTaskChangeSchema).min(1),
   note: z.preprocess(
@@ -60,7 +68,7 @@ export const VisdiffTaskPayloadSchema = z.object({
 /** What reaches the queue file and the agent. */
 export const VisdiffTaskSchema = VisdiffTaskPayloadSchema.extend({
   id: z.string().min(1),
-  receivedAt: z.string().datetime(),
+  receivedAt: z.iso.datetime(),
 })
 
 export const VisdiffTaskQueueSchema = z.array(VisdiffTaskSchema)
@@ -68,6 +76,7 @@ export const VisdiffTaskQueueSchema = z.array(VisdiffTaskSchema)
 export type VisdiffSource = z.infer<typeof VisdiffSourceSchema>
 export type VisdiffEdit = z.infer<typeof VisdiffEditSchema>
 export type VisdiffTaskElement = z.infer<typeof VisdiffTaskElementSchema>
+export type VisdiffSelectionGroup = z.infer<typeof VisdiffSelectionGroupSchema>
 export type VisdiffTaskChange = z.infer<typeof VisdiffTaskChangeSchema>
 export type VisdiffTaskPayload = z.infer<typeof VisdiffTaskPayloadSchema>
 export type VisdiffTask = z.infer<typeof VisdiffTaskSchema>

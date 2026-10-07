@@ -1,6 +1,6 @@
 import type { Plugin, ViteDevServer, Connect } from 'vite'
 import { createVisdiffHandler, VISDIFF_BASE } from './server-core'
-import { injectReactSource } from './source-inject'
+import { injectSource } from './source-inject'
 import type { VisdiffOptions } from './types'
 
 /**
@@ -17,7 +17,7 @@ export function visdiffVite(options: VisdiffOptions = {}): Plugin {
       projectRoot = options.root ?? config.root
     },
     transform(code, id) {
-      return injectReactSource(code, id, projectRoot)
+      return injectSource(code, id, projectRoot)
     },
     configureServer(server: ViteDevServer) {
       const root = options.root ?? server.config.root

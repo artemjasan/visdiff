@@ -1,10 +1,20 @@
 # visdiff
 
-TypeScript-first browser overlay and MCP bridge for visual UI edits. The package is not published to npm yet; use the workspace commands in the repository README until then. Node.js requirement: `^20.19.0 || >=22.12.0`.
+Visdiff turns visual changes in a running web app into source-aware tasks for coding agents. It provides a browser overlay, a CLI, and an MCP stdio server.
 
-## Vite
+Browse the [Visdiff guide](https://artemjasan.github.io/visdiff/) for setup, the agent workflow, CLI/MCP reference, and task format. Check the [framework and bundler support matrix](https://artemjasan.github.io/visdiff/reference/adapters) before choosing an adapter.
 
-Install `visdiff` and `@vitejs/plugin-react` as dev dependencies, then place `visdiffVite()` before the React plugin so source locations are injected before JSX compilation:
+## Install
+
+```bash
+npm install -D visdiff
+```
+
+Node.js requirement: `^20.19.0 || >=22.12.0`.
+
+## Vite setup
+
+Register `visdiffVite()` before the framework plugin so source locations are attached before compilation:
 
 ```ts
 import { defineConfig } from 'vite'
@@ -16,30 +26,42 @@ export default defineConfig({
 })
 ```
 
-The adapter runs only in Vite serve mode. It injects the browser overlay, records batches in `<vite-root>/.visdiff/pending.json`, and prints every submitted batch in the dev-server terminal.
+The adapter runs only during development. It injects the browser overlay and records tasks in `<vite-root>/.visdiff/pending.json`.
 
-## Browser workflow
+Vite source anchors are supported for React JSX/TSX, Vue 3 SFC templates, and Svelte 4/5 markup. Register `visdiffVite()` before the framework plugin. Vue/Svelte elements created outside their templates may not have source anchors; task capture still includes runtime element context.
 
-1. Click **visdiff**, then select and move/resize an element.
-2. Each completed drag or resize is added automatically to the translucent panel; no save click per edit.
-3. Select and change as many different elements as needed. The panel keeps a separate row for each CSS edit; `×` removes one row without discarding the rest. Click the comment icon on any row to attach a short note to that exact edit, then drag the header to reposition it within the viewport or click **Hide** and restore it with **Show changes** at the same position.
-4. Click **Apply** once to send the accumulated batch. The task groups edits by element, source anchor, and viewport.
+## Agent workflow
 
-**Reset** reverts the current preview; **Esc**/`✕` cancel the current selection; **Clear** discards the full unsent batch. After Apply, preview styles stay until HMR replaces them with the agent's code changes.
+1. Open the running app and make visual edits with the overlay.
+2. Add intent or per-change notes when helpful; click **Apply** to queue the task.
+3. Read the task with the CLI or MCP. Inspect its source anchor and related styles; treat CSS `from`/`to` values as observed results, not source-code instructions.
+4. Implement the smallest maintainable change and verify it in the app.
+5. Clear only the task IDs that were successfully applied.
 
-## CLI and MCP
+Tasks include the page URL, viewport, source location when available, runtime element context, CSS edits, notes, and links between changes from one multi-selection. The full agent guidance is available with `visdiff instructions` or the `visdiff_pending_tasks` MCP tool.
 
-From the repository root:
+## CLI
 
 ```bash
-npm exec --workspace examples/vite-react -- visdiff tasks
-npm exec --workspace examples/vite-react -- visdiff clear
-npm exec --workspace examples/vite-react -- visdiff mcp
+npx -y visdiff tasks
+npx -y visdiff instructions
+npx -y visdiff clear <task-id> [task-id ...]
+npx -y visdiff mcp
 ```
 
-After publication, the bin is available as `npx -y visdiff <command>`. The MCP stdio server exposes `visdiff_pending_tasks` and `visdiff_clear_tasks`; clear requires `{ "ids": ["..."] }` and removes only the selected batches.
+Passing IDs to `clear` removes only those tasks. Bare `visdiff clear` intentionally clears the entire queue.
 
-## Other unplugin adapters
+## MCP
+
+Configure an MCP client to launch:
+
+```bash
+npx -y visdiff mcp
+```
+
+The stdio server provides `visdiff_pending_tasks` to read tasks and `visdiff_clear_tasks` to remove only specified task IDs.
+
+## Other bundlers
 
 Generic adapter entrypoints are `visdiff/rollup`, `visdiff/webpack`, `visdiff/rspack`, `visdiff/rsbuild`, `visdiff/rolldown`, `visdiff/esbuild`, `visdiff/farm`, and `visdiff/bun`. For example:
 
@@ -51,4 +73,6 @@ export default {
 }
 ```
 
-Generic adapters start the standalone endpoint when `NODE_ENV=development` or `enabled: true` is passed. They do not inject HTML; add a dev-only script tag using the endpoint URL printed at startup. The endpoint binds to `127.0.0.1` and accepts browser origins on loopback hosts only. The JSX/TSX source transform is dev-only and must run before the framework JSX compiler. Turbopack is not supported.
+Generic adapters do not inject HTML. Add a development-only script tag using the endpoint URL printed at startup. React JSX/TSX anchors require the Visdiff transform to run before the framework JSX compiler. Vue and Svelte anchors are currently available through the Vite adapter only. See the [framework and bundler support matrix](https://artemjasan.github.io/visdiff/reference/adapters). Turbopack is not supported.
+
+For the complete demo, development, and architecture guide, see the [repository README](https://github.com/artemjasan/visdiff#readme).

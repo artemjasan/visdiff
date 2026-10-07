@@ -8,8 +8,8 @@ import { fileURLToPath } from "url";
 import { z } from "zod";
 var VisdiffSourceSchema = z.object({
   file: z.string().min(1),
-  line: z.number().finite().optional(),
-  column: z.number().finite().optional(),
+  line: z.number().optional(),
+  column: z.number().optional(),
   component: z.string().optional()
 });
 var VisdiffEditSchema = z.object({
@@ -38,15 +38,21 @@ var VisdiffTaskElementSchema = z.object({
   text: z.string().default(""),
   source: z.union([VisdiffSourceSchema, z.null()]).default(null)
 });
+var VisdiffSelectionGroupSchema = z.object({
+  id: z.string().min(1),
+  selectedCount: z.number().int().min(2),
+  role: z.enum(["member", "layout-container"])
+});
 var VisdiffTaskChangeSchema = z.object({
   element: VisdiffTaskElementSchema,
-  edits: z.array(VisdiffEditSchema).min(1)
+  edits: z.array(VisdiffEditSchema).min(1),
+  selectionGroups: z.array(VisdiffSelectionGroupSchema).optional()
 });
 var VisdiffTaskPayloadSchema = z.object({
   url: z.string().min(1),
   viewport: z.object({
-    width: z.number().finite().nonnegative(),
-    height: z.number().finite().nonnegative()
+    width: z.number().nonnegative(),
+    height: z.number().nonnegative()
   }),
   changes: z.array(VisdiffTaskChangeSchema).min(1),
   note: z.preprocess(
@@ -56,7 +62,7 @@ var VisdiffTaskPayloadSchema = z.object({
 });
 var VisdiffTaskSchema = VisdiffTaskPayloadSchema.extend({
   id: z.string().min(1),
-  receivedAt: z.string().datetime()
+  receivedAt: z.iso.datetime()
 });
 var VisdiffTaskQueueSchema = z.array(VisdiffTaskSchema);
 
@@ -234,13 +240,16 @@ function createVisdiffHandler(options) {
         }
         chunks.push(chunk);
       }
-      let payload = null;
+      let rawPayload;
       try {
-        payload = parsePayload(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+        rawPayload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
       } catch {
-        payload = null;
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "invalid task payload" }));
+        return true;
       }
-      if (!payload) {
+      const payload = parsePayload(rawPayload);
+      if (payload === null) {
         res.writeHead(400, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: "invalid task payload" }));
         return true;
@@ -311,31 +320,14 @@ async function startStandaloneServer(options) {
 import { existsSync } from "fs";
 import path3 from "path";
 import { transformSync, types as t } from "@babel/core";
+import MagicString from "magic-string";
 function injectReactSource(code, id, projectRoot) {
-  if (!code.includes("<")) return null;
-  const idPath = id.split("?")[0] ?? id;
-  if (idPath.includes("/node_modules/")) return null;
+  const sourceFile = resolveSourceFile(id, projectRoot);
+  if (sourceFile === null || !code.includes("<")) return null;
+  const { idPath, file } = sourceFile;
   const extension = path3.extname(idPath);
   if (extension !== ".js" && extension !== ".jsx" && extension !== ".tsx") return null;
   const root = path3.resolve(projectRoot);
-  let absoluteFile;
-  if (path3.isAbsolute(idPath)) {
-    const candidate = path3.resolve(idPath);
-    const candidateRelative = path3.relative(root, candidate);
-    const outsideRoot = candidateRelative === ".." || candidateRelative.startsWith(`..${path3.sep}`) || path3.isAbsolute(candidateRelative);
-    if (!outsideRoot) {
-      absoluteFile = candidate;
-    } else {
-      const rootRelative = path3.resolve(root, idPath.replace(/^[/\\]+/, ""));
-      if (!existsSync(rootRelative)) return null;
-      absoluteFile = rootRelative;
-    }
-  } else {
-    absoluteFile = path3.resolve(root, idPath);
-  }
-  const relativeFile = path3.relative(root, absoluteFile);
-  if (relativeFile === ".." || relativeFile.startsWith(`..${path3.sep}`) || path3.isAbsolute(relativeFile)) return null;
-  const file = relativeFile.split(path3.sep).join("/");
   let changed = false;
   const sourcePlugin = {
     visitor: {
@@ -391,10 +383,139 @@ function injectReactSource(code, id, projectRoot) {
     return null;
   }
 }
+function injectSource(code, id, projectRoot) {
+  const idPath = id.split("?")[0] ?? id;
+  if (idPath.endsWith(".vue")) return injectVueSource(code, id, projectRoot);
+  if (idPath.endsWith(".svelte")) return injectSvelteSource(code, id, projectRoot);
+  return injectReactSource(code, id, projectRoot);
+}
+async function injectVueSource(code, id, projectRoot) {
+  const sourceFile = resolveSourceFile(id, projectRoot);
+  if (sourceFile === null || path3.extname(sourceFile.idPath) !== ".vue") return null;
+  const { idPath, file } = sourceFile;
+  const sfcCompiler = await import("@vue/compiler-sfc");
+  const templateCompiler = await import("@vue/compiler-dom");
+  const { descriptor } = sfcCompiler.parse(code, { filename: idPath });
+  if (descriptor.template === null) return null;
+  const template = descriptor.template;
+  const ast = templateCompiler.parse(template.content);
+  const insertions = [];
+  const locate = createSourceLocator(code);
+  const { ELEMENT, ATTRIBUTE } = templateCompiler.NodeTypes;
+  const visit = (node) => {
+    if (node.type === ELEMENT) {
+      const hasSource = node.props.some((prop) => prop.type === ATTRIBUTE && prop.name === "data-visdiff-src");
+      if (!hasSource) {
+        const offset = template.loc.start.offset + node.loc.start.offset;
+        const location = locate(offset);
+        insertions.push({
+          offset: offset + 1 + node.tag.length,
+          value: sourceAttribute({ file, ...location })
+        });
+      }
+      node.children.forEach(visit);
+    }
+  };
+  ast.children.forEach(visit);
+  return applySourceInsertions(code, idPath, insertions);
+}
+async function injectSvelteSource(code, id, projectRoot) {
+  const sourceFile = resolveSourceFile(id, projectRoot);
+  if (sourceFile === null || path3.extname(sourceFile.idPath) !== ".svelte") return null;
+  const { idPath, file } = sourceFile;
+  const compiler = await import("svelte/compiler");
+  const ast = compiler.parse(code, { filename: idPath, modern: false });
+  const insertions = [];
+  const locate = createSourceLocator(code);
+  const visit = (node) => {
+    if (node.type === "Element" && typeof node.start === "number" && typeof node.name === "string") {
+      const hasSource = node.attributes?.some((attribute) => attribute.type === "Attribute" && attribute.name === "data-visdiff-src") ?? false;
+      if (!hasSource) {
+        const location = locate(node.start);
+        insertions.push({
+          offset: node.start + 1 + node.name.length,
+          value: svelteSourceAttribute({ file, ...location })
+        });
+      }
+    }
+    node.children?.forEach(visit);
+  };
+  const template = ast.html;
+  template.children.forEach(visit);
+  return applySourceInsertions(code, idPath, insertions);
+}
+function resolveSourceFile(id, projectRoot) {
+  const idPath = id.split("?")[0] ?? id;
+  if (idPath.includes("/node_modules/")) return null;
+  const root = path3.resolve(projectRoot);
+  let absoluteFile;
+  if (path3.isAbsolute(idPath)) {
+    const candidate = path3.resolve(idPath);
+    const candidateRelative = path3.relative(root, candidate);
+    const outsideRoot = candidateRelative === ".." || candidateRelative.startsWith(`..${path3.sep}`) || path3.isAbsolute(candidateRelative);
+    if (!outsideRoot) {
+      absoluteFile = candidate;
+    } else {
+      const rootRelative = path3.resolve(root, idPath.replace(/^[/\\]+/, ""));
+      if (!existsSync(rootRelative)) return null;
+      absoluteFile = rootRelative;
+    }
+  } else {
+    absoluteFile = path3.resolve(root, idPath);
+  }
+  const relativeFile = path3.relative(root, absoluteFile);
+  if (relativeFile === ".." || relativeFile.startsWith(`..${path3.sep}`) || path3.isAbsolute(relativeFile)) return null;
+  return { idPath, file: relativeFile.split(path3.sep).join("/") };
+}
+function createSourceLocator(source) {
+  const lineStarts = [0];
+  for (let index = 0; index < source.length; index++) {
+    if (source[index] === "\n") lineStarts.push(index + 1);
+  }
+  return (offset) => {
+    let low = 0;
+    let high = lineStarts.length;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      if ((lineStarts[middle] ?? 0) <= offset) low = middle + 1;
+      else high = middle;
+    }
+    const lineStart = lineStarts[low - 1] ?? 0;
+    return { line: low, column: offset - lineStart + 1 };
+  };
+}
+function sourceAttribute(source) {
+  const json = JSON.stringify(source);
+  const escaped = json.replaceAll("&", "&amp;").replaceAll("'", "&#39;").replaceAll("<", "&lt;");
+  return ` data-visdiff-src='${escaped}'`;
+}
+function svelteSourceAttribute(source) {
+  return ` data-visdiff-src={${JSON.stringify(JSON.stringify(source))}}`;
+}
+function applySourceInsertions(code, idPath, insertions) {
+  if (insertions.length === 0) return null;
+  const source = new MagicString(code);
+  for (const insertion of insertions.sort((left, right) => right.offset - left.offset)) {
+    source.appendLeft(insertion.offset, insertion.value);
+  }
+  const map = source.generateMap({ hires: true, source: idPath, includeContent: true });
+  return {
+    code: source.toString(),
+    map: {
+      file: map.file ?? void 0,
+      version: map.version,
+      mappings: map.mappings,
+      names: map.names,
+      sources: map.sources,
+      sourcesContent: map.sourcesContent ?? void 0
+    }
+  };
+}
 
 export {
   VISDIFF_BASE,
   createVisdiffHandler,
   startStandaloneServer,
-  injectReactSource
+  injectReactSource,
+  injectSource
 };

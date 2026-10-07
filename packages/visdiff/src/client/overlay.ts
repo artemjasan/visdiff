@@ -7,6 +7,8 @@ export interface OverlayElements {
   frame: HTMLDivElement
   badge: HTMLDivElement
   selFrame: HTMLDivElement
+  selectionFrames: HTMLDivElement[]
+  layoutContainerFrame: HTMLDivElement
   bar: HTMLDivElement
   barLabel: HTMLSpanElement
   layoutToggleBtn: HTMLButtonElement
@@ -53,7 +55,6 @@ export interface OverlayActions {
   apply(): void
   clear(): void
   applyLayout(property: LayoutProp, value: string): void
-  positionLayoutPanel(): void
 }
 
 export interface BatchViewActions {
@@ -79,14 +80,15 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   btn.id = 'vd-toggle'
   btn.setAttribute('data-vd-ui', '')
   btn.textContent = 'visdiff'
-  btn.addEventListener('click', actions.toggle)
+  btn.addEventListener('click', () => actions.toggle())
 
   const frame = createUiElement('div', 'data-vd-frame')
   const badge = createUiElement('div', 'data-vd-badge')
-  const selFrame = createUiElement('div', 'data-vd-frame', 'data-vd-selected')
-  const handleE = makeHandle('w', actions.startDrag)
-  const handleS = makeHandle('h', actions.startDrag)
-  const handleSE = makeHandle('wh', actions.startDrag)
+  const layoutContainerFrame = createUiElement('div', 'data-vd-layout-container')
+  const selFrame = createUiElement('div', 'data-vd-selection-member')
+  const handleE = makeHandle('w', (event, mode) => actions.startDrag(event, mode))
+  const handleS = makeHandle('h', (event, mode) => actions.startDrag(event, mode))
+  const handleSE = makeHandle('wh', (event, mode) => actions.startDrag(event, mode))
 
   const bar = createUiElement('div', 'data-vd-bar')
   const barLabel = document.createElement('span')
@@ -94,35 +96,62 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   const layoutToggleBtn = document.createElement('button')
   layoutToggleBtn.setAttribute('data-vd-ui', '')
   layoutToggleBtn.setAttribute('data-vd-layout-toggle', '')
-  layoutToggleBtn.textContent = '⋯'
   layoutToggleBtn.title = 'Layout tools'
   layoutToggleBtn.setAttribute('aria-label', 'Layout tools')
   layoutToggleBtn.setAttribute('aria-expanded', 'false')
+  const toolsIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  toolsIcon.setAttribute('viewBox', '0 0 24 24')
+  toolsIcon.setAttribute('width', '16')
+  toolsIcon.setAttribute('height', '16')
+  toolsIcon.setAttribute('aria-hidden', 'true')
+  toolsIcon.setAttribute('fill', 'none')
+  toolsIcon.setAttribute('stroke', 'currentColor')
+  toolsIcon.setAttribute('stroke-width', '1.8')
+  toolsIcon.setAttribute('stroke-linecap', 'round')
+  toolsIcon.setAttribute('stroke-linejoin', 'round')
+  for (const d of ['M4 7h9', 'M17 7h3', 'M4 17h3', 'M11 17h9', 'M13 4v6', 'M7 14v6']) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    line.setAttribute('d', d)
+    toolsIcon.append(line)
+  }
+  const firstKnob = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+  firstKnob.setAttribute('cx', '15')
+  firstKnob.setAttribute('cy', '7')
+  firstKnob.setAttribute('r', '2')
+  toolsIcon.append(firstKnob)
+  const secondKnob = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+  secondKnob.setAttribute('cx', '9')
+  secondKnob.setAttribute('cy', '17')
+  secondKnob.setAttribute('r', '2')
+  toolsIcon.append(secondKnob)
+  layoutToggleBtn.append(toolsIcon)
   layoutToggleBtn.addEventListener('click', () => {
     layoutOpen = !layoutOpen
     layoutToggleBtn.setAttribute('aria-expanded', String(layoutOpen))
     layoutPanel.style.display = layoutOpen ? 'flex' : 'none'
-    if (layoutOpen) actions.positionLayoutPanel()
+    bar.toggleAttribute('data-vd-expanded', layoutOpen)
   })
   const resetBtn = document.createElement('button')
   resetBtn.textContent = '↺ Reset'
-  resetBtn.addEventListener('click', actions.reset)
+  resetBtn.addEventListener('click', () => actions.reset())
   const cancelBtn = document.createElement('button')
   cancelBtn.textContent = '✕'
-  cancelBtn.addEventListener('click', actions.cancelSelection)
-  bar.append(barLabel, layoutToggleBtn, resetBtn, cancelBtn)
+  cancelBtn.addEventListener('click', () => actions.cancelSelection())
+  const barControls = document.createElement('div')
+  barControls.setAttribute('data-vd-bar-controls', '')
+  barControls.append(barLabel, layoutToggleBtn, resetBtn, cancelBtn)
 
   const batchPanel = createUiElement('div', 'data-vd-batch')
   const batchHeader = document.createElement('div')
   batchHeader.setAttribute('data-vd-batch-header', '')
-  batchHeader.addEventListener('pointerdown', actions.startPanelDrag)
+  batchHeader.addEventListener('pointerdown', (event) => actions.startPanelDrag(event))
   const batchTitle = document.createElement('span')
   batchTitle.setAttribute('data-vd-batch-title', '')
   const hideBatchBtn = document.createElement('button')
   hideBatchBtn.setAttribute('data-vd-ui', '')
   hideBatchBtn.setAttribute('data-vd-batch-hide', '')
   hideBatchBtn.textContent = 'Hide'
-  hideBatchBtn.addEventListener('click', actions.hideBatchPanel)
+  hideBatchBtn.addEventListener('click', () => actions.hideBatchPanel())
   batchHeader.append(batchTitle, hideBatchBtn)
   const batchList = document.createElement('div')
   batchList.setAttribute('data-vd-change-list', '')
@@ -131,10 +160,10 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   const applyBatchBtn = document.createElement('button')
   applyBatchBtn.setAttribute('data-vd-apply', '')
   applyBatchBtn.textContent = 'Apply'
-  applyBatchBtn.addEventListener('click', actions.apply)
+  applyBatchBtn.addEventListener('click', () => actions.apply())
   const clearBatchBtn = document.createElement('button')
   clearBatchBtn.textContent = 'Clear'
-  clearBatchBtn.addEventListener('click', actions.clear)
+  clearBatchBtn.addEventListener('click', () => actions.clear())
   batchActions.append(applyBatchBtn, clearBatchBtn)
   const batchNoteField = document.createElement('textarea')
   batchNoteField.setAttribute('data-vd-note', '')
@@ -142,8 +171,7 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   batchNoteField.placeholder = 'Optional note for the agent'
   batchNoteField.maxLength = 1000
   batchNoteField.rows = 2
-  batchNoteField.style.display = 'none'
-  batchPanel.append(batchHeader, batchList, batchActions)
+  batchPanel.append(batchHeader, batchList, batchNoteField, batchActions)
 
   const layoutPanel = createUiElement('div', 'data-vd-layout')
   layoutPanel.style.display = 'none'
@@ -154,13 +182,13 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   const layoutModeSelect = createSelect('Layout', [
     ['flex', 'Flex'],
     ['grid', 'Grid'],
-  ], 'display', actions.applyLayout)
+  ], 'display', (property, value) => actions.applyLayout(property, value))
   const layoutDirectionSelect = createSelect('Direction', [
     ['row', 'Row'],
     ['column', 'Column'],
     ['row-reverse', 'Row reverse'],
     ['column-reverse', 'Column reverse'],
-  ], 'flex-direction', actions.applyLayout)
+  ], 'flex-direction', (property, value) => actions.applyLayout(property, value))
   const layoutJustifySelect = createSelect('Justify', [
     ['normal', 'Normal'],
     ['start', 'Start'],
@@ -174,7 +202,7 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
     ['stretch', 'Stretch'],
     ['left', 'Left'],
     ['right', 'Right'],
-  ], 'justify-content', actions.applyLayout)
+  ], 'justify-content', (property, value) => actions.applyLayout(property, value))
   const layoutAlignSelect = createSelect('Align', [
     ['normal', 'Normal'],
     ['stretch', 'Stretch'],
@@ -184,7 +212,7 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
     ['flex-end', 'Flex end'],
     ['center', 'Center'],
     ['baseline', 'Baseline'],
-  ], 'align-items', actions.applyLayout)
+  ], 'align-items', (property, value) => actions.applyLayout(property, value))
   const layoutGapSelect = createSelect('Gap', [
     ['normal', 'Normal'],
     ['0px', 'None'],
@@ -194,7 +222,7 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
     ['16px', '16 px'],
     ['24px', '24 px'],
     ['32px', '32 px'],
-  ], 'gap', actions.applyLayout)
+  ], 'gap', (property, value) => actions.applyLayout(property, value))
   const layoutControls = document.createElement('div')
   layoutControls.setAttribute('data-vd-layout-controls', '')
   layoutControls.append(
@@ -205,6 +233,7 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
     createField('Gap', layoutGapSelect),
   )
   layoutPanel.append(layoutTitle, layoutTargetLabel, layoutControls)
+  bar.append(barControls, layoutPanel)
 
   const commentEditor = createUiElement('div', 'data-vd-comment-panel')
   commentEditor.style.display = 'none'
@@ -226,7 +255,7 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   const batchRestoreBtn = document.createElement('button')
   batchRestoreBtn.setAttribute('data-vd-batch-restore', '')
   batchRestoreBtn.setAttribute('data-vd-ui', '')
-  batchRestoreBtn.addEventListener('click', actions.showBatchPanel)
+  batchRestoreBtn.addEventListener('click', () => actions.showBatchPanel())
 
   const toastEl = createUiElement('div', 'data-vd-toast')
 
@@ -234,12 +263,12 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
     btn,
     frame,
     badge,
+    layoutContainerFrame,
     selFrame,
     handleE,
     handleS,
     handleSE,
     bar,
-    layoutPanel,
     batchPanel,
     commentEditor,
     batchRestoreBtn,
@@ -251,6 +280,8 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
     frame,
     badge,
     selFrame,
+    selectionFrames: [selFrame],
+    layoutContainerFrame,
     bar,
     barLabel,
     layoutToggleBtn,
@@ -276,6 +307,19 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
     handleSE,
     toastEl,
   }
+}
+
+export function ensureSelectionFrames(ui: OverlayElements, count: number): HTMLDivElement[] {
+  while (ui.selectionFrames.length < count) {
+    const selectionFrame = createUiElement('div', 'data-vd-selection-member')
+    document.body.append(selectionFrame)
+    ui.selectionFrames.push(selectionFrame)
+  }
+  for (let index = count; index < ui.selectionFrames.length; index++) {
+    const selectionFrame = ui.selectionFrames[index]
+    if (selectionFrame !== undefined) selectionFrame.style.display = 'none'
+  }
+  return ui.selectionFrames.slice(0, count)
 }
 
 export function renderPendingChanges(
@@ -356,9 +400,10 @@ export function updateLayoutPanel(
   targetLabel: string,
 ): void {
   if (selectionCount < 2) layoutOpen = false
-  ui.layoutToggleBtn.style.display = selectionCount > 1 ? 'block' : 'none'
+  ui.layoutToggleBtn.style.display = selectionCount > 1 ? 'flex' : 'none'
   ui.layoutToggleBtn.setAttribute('aria-expanded', String(layoutOpen))
   ui.layoutPanel.style.display = selectionCount > 1 && layoutOpen ? 'flex' : 'none'
+  ui.bar.toggleAttribute('data-vd-expanded', selectionCount > 1 && layoutOpen)
   ui.layoutTargetLabel.textContent = target === null
     ? `${selectionCount} selected. Select siblings with the same parent to edit their layout.`
     : `${selectionCount} selected · applies to ${targetLabel}`

@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish npm package and GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm test --workspace packages/visdiff
+      - run: npx tsc --noEmit -p packages/visdiff/tsconfig.json
+      - run: npm run build --workspace packages/visdiff
+      - name: Verify tag matches package version
+        run: |
+          package_version="$(node -p "JSON.parse(require('node:fs').readFileSync('packages/visdiff/package.json', 'utf8')).version")"
+          test "$GITHUB_REF_NAME" = "v$package_version"
+      - name: Publish to npm
+        run: npm publish --workspace packages/visdiff --access public --provenance
+      - name: Pack release archive
+        run: npm pack ./packages/visdiff --pack-destination ./release
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" ./release/*.tgz --generate-notes

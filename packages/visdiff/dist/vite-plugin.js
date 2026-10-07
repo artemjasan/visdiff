@@ -1,8 +1,8 @@
 import {
   VISDIFF_BASE,
   createVisdiffHandler,
-  injectReactSource
-} from "./chunk-Y7PD535Q.js";
+  injectSource
+} from "./chunk-MPKQVPP5.js";
 
 // src/vite-plugin.ts
 function visdiffVite(options = {}) {
@@ -15,7 +15,7 @@ function visdiffVite(options = {}) {
       projectRoot = options.root ?? config.root;
     },
     transform(code, id) {
-      return injectReactSource(code, id, projectRoot);
+      return injectSource(code, id, projectRoot);
     },
     configureServer(server) {
       const root = options.root ?? server.config.root;

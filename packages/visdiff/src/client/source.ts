@@ -93,7 +93,7 @@ function cssEscape(id: string): string {
   if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(str)
   let out = ''
   for (const ch of str) {
-    if (/["'\\>\[\]#,\s]/.test(ch)) {
+    if (/["'\\>#,\s]/.test(ch) || ch === '[' || ch === ']') {
       out += `\\${ch}`
       continue
     }

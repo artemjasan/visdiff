@@ -1,32 +1,33 @@
-/**
- * Browser overlay: pick an element, adjust it visually, and stage each completed gesture.
- * The transparent change panel lists queued edits and submits the entire batch on Apply.
- */
+/** Browser entry point wiring selection, editing, layout, batch, and overlay controllers. */
 import {
-  composeMoveTransform,
-  currentEditList,
   EDIT_PROPERTIES,
-  sameElement,
   type DragMode,
-  type EditList,
-  type EditProp,
-  type EditRecord,
+  type EditMap,
   type ElementBaseline,
-  type InlineStyleSnapshot,
   type LayoutProp,
   type SourceInfo,
-  type StagedChange,
 } from './client/model'
-import { cssPath, describe, resolveElementSource, sourceSync } from './client/source'
+import {
+  ElementEditor,
+  readBaseline,
+  restoreBaselineProperty,
+} from './client/editing'
+import { LayoutEditor } from './client/layout'
+import { ChangeBatch } from './client/batch'
+import { BatchPanelController } from './client/batch-panel'
+import {
+  positionBar,
+  positionSelection as updateSelectionPosition,
+  setBox,
+} from './client/geometry'
+import { describe, resolveElementSource, sourceSync } from './client/source'
 import {
   createOverlay,
-  renderPendingChanges as renderOverlayPendingChanges,
   showToast,
   updateLayoutPanel,
   type OverlayElements,
 } from './client/overlay'
-import type { VisdiffEdit, VisdiffTaskChange, VisdiffTaskElement } from './types'
-
+import type { VisdiffSelectionGroup } from './types'
 
 interface VisdiffApi {
   enter(): void
@@ -70,20 +71,62 @@ const ENDPOINT = typeof document === 'undefined' ? '' : computeEndpoint()
 let running = false
 let selected: HTMLElement | SVGElement | null = null
 let selectedGroup: Array<HTMLElement | SVGElement> = []
+let selectionGroupId: string | null = null
+let selectionGroupSequence = 0
 let hovered: Element | null = null
 let hoverSrc: SourceInfo | null = null
 let source: SourceInfo | null = null
 let baseline: ElementBaseline | null = null
-let edits: Partial<Record<EditProp, EditRecord>> | null = null
+let edits: EditMap | null = null
 let applying = false
-let pendingChanges: StagedChange[] = []
-let batchPanelHidden = false
 let selectSeq = 0
-let layoutTarget: HTMLElement | null = null
-let layoutBaseline: ElementBaseline | null = null
-let layoutEdits: Partial<Record<EditProp, EditRecord>> = {}
 
 let overlay: OverlayElements | null = null
+const changeBatch = new ChangeBatch({
+  changed: renderPendingChanges,
+  notify: (message) => toast(message, false),
+})
+const batchPanel = new BatchPanelController(
+  () => overlay,
+  {
+    changes: () => changeBatch.changes,
+    state: () => ({ running, applying }),
+    apply: () => { void save() },
+    clear: discardPendingChanges,
+    removeChange: removeStagedChange,
+  },
+)
+
+const elementEditor = new ElementEditor({
+  activeTargets,
+  selectedTarget: () => selected,
+  sourceFor: (target) => sourceSync(target),
+  selectionGroup: selectionGroupFor,
+  isApplying: () => applying,
+  stage: stageTargetChange,
+  afterSelectedDrag(target) {
+    if (selected !== target) return
+    baseline = readBaseline(target)
+    edits = {}
+    source = sourceSync(target)
+  },
+  afterGroupDrag() {
+    if (selectedGroup.length > 1) deselect()
+  },
+})
+
+const layoutEditor = new LayoutEditor({
+  selectedTargets: activeTargets,
+  isApplying: () => applying,
+  sourceFor: sourceSync,
+  selectionGroup: selectionGroupFor,
+  describeTarget: (target) => describe(target, sourceSync(target)),
+  stage: stageTargetChange,
+  updatePanel(count, target, label) {
+    if (overlay !== null) updateLayoutPanel(overlay, count, target, label)
+  },
+  notify: (message) => toast(message, false),
+})
 
 /* --------------------------------------------------------------------- modes */
 function enter(): void {
@@ -110,17 +153,23 @@ function toggle(): void {
 }
 
 function deselect(): void {
-  if (hasLayoutEdits()) resetLayoutPreview()
+  if (layoutEditor.hasChanges()) layoutEditor.resetPreview()
   selected = null
   selectedGroup = []
+  selectionGroupId = null
+  elementEditor.clearKeyboardMoves()
   baseline = null
   edits = null
   source = null
-  layoutTarget = null
-  layoutBaseline = null
-  layoutEdits = {}
-  refreshLayoutPanel()
-  for (const node of [overlay?.selFrame, overlay?.handleE, overlay?.handleS, overlay?.handleSE, overlay?.bar]) {
+  layoutEditor.refresh()
+  for (const node of [
+    overlay?.layoutContainerFrame,
+    ...(overlay?.selectionFrames ?? []),
+    overlay?.handleE,
+    overlay?.handleS,
+    overlay?.handleSE,
+    overlay?.bar,
+  ]) {
     if (node !== undefined) node.style.display = 'none'
   }
 }
@@ -138,7 +187,7 @@ function hasEdits(): boolean {
 }
 
 function hasLayoutEdits(): boolean {
-  return Object.keys(layoutEdits).length > 0
+  return layoutEditor.hasChanges()
 }
 
 function cancelSelection(): void {
@@ -156,42 +205,10 @@ function hoverBlur(): void {
 }
 
 /* ----------------------------------------------------------------- selection */
-function readBaseline(el: HTMLElement | SVGElement): ElementBaseline {
-  const computed = getComputedStyle(el)
-  const widthExtras = computed.boxSizing === 'border-box'
-    ? 0
-    : Number.parseFloat(computed.paddingLeft) + Number.parseFloat(computed.paddingRight)
-      + Number.parseFloat(computed.borderLeftWidth) + Number.parseFloat(computed.borderRightWidth)
-  const heightExtras = computed.boxSizing === 'border-box'
-    ? 0
-    : Number.parseFloat(computed.paddingTop) + Number.parseFloat(computed.paddingBottom)
-      + Number.parseFloat(computed.borderTopWidth) + Number.parseFloat(computed.borderBottomWidth)
-  const inlineStyles: Partial<Record<EditProp, InlineStyleSnapshot>> = {}
-  for (const property of EDIT_PROPERTIES) {
-    inlineStyles[property] = {
-      value: el.style.getPropertyValue(property),
-      priority: el.style.getPropertyPriority(property),
-    }
-  }
-  return {
-    cssWidth: computed.width,
-    cssHeight: computed.height,
-    widthExtras,
-    heightExtras,
-    borderBox: computed.boxSizing === 'border-box',
-    transform: computed.transform,
-    inlineStyles,
-  }
-}
-
-function readStyleValue(el: HTMLElement | SVGElement, property: EditProp): string {
-  return getComputedStyle(el).getPropertyValue(property).trim()
-}
-
 function select(target: Element, additive = false): void {
   if (applying || isSystemUiElement(target)) return
   if (!(target instanceof HTMLElement) && !(target instanceof SVGElement)) return
-  const active = target as HTMLElement | SVGElement
+  const active = target
   const groupBefore = additive ? [...selectedGroup] : []
   if (selected !== null && (hasEdits() || hasLayoutEdits())) {
     if (selected === active && !additive) return
@@ -216,6 +233,7 @@ function select(target: Element, additive = false): void {
     selectedGroup = [active]
     selected = active
   }
+  selectionGroupId = selectedGroup.length > 1 ? `selection-${++selectionGroupSequence}` : null
   baseline = readBaseline(selected)
   edits = {}
   const sync = sourceSync(selected)
@@ -223,9 +241,10 @@ function select(target: Element, additive = false): void {
   if (sync !== null) source = sync
   if (overlay !== null) {
     overlay.bar.style.display = 'flex'
-    positionBar(selected.getBoundingClientRect())
+    positionBar(overlay, selected.getBoundingClientRect())
   }
   refreshLayoutPanel()
+  positionSelection()
   void resolveAsync(selected, seq)
 }
 
@@ -239,69 +258,29 @@ function updateSelectionLabel(target: Element, sourceInfo: SourceInfo | null, re
   label.textContent = resolving ? 'Resolving source…' : describe(target, sourceInfo)
 }
 
-function selectedLayoutContainer(): HTMLElement | null {
-  if (selectedGroup.length < 2) return null
-  const first = selectedGroup[0]
-  const parent = first?.parentElement
-  if (!(parent instanceof HTMLElement)) return null
-  return selectedGroup.every((target) => target.parentElement === parent) ? parent : null
+function refreshLayoutPanel(): void {
+  layoutEditor.refresh()
 }
 
-function refreshLayoutPanel(): void {
-  if (overlay === null) return
-  const nextTarget = selectedLayoutContainer()
-  if (nextTarget !== layoutTarget) {
-    layoutTarget = nextTarget
-    layoutBaseline = layoutTarget === null ? null : readBaseline(layoutTarget)
-    layoutEdits = {}
+function selectionGroupFor(target: HTMLElement | SVGElement): VisdiffSelectionGroup | undefined {
+  if (selectionGroupId === null || selectedGroup.length < 2) return undefined
+  return {
+    id: selectionGroupId,
+    selectedCount: selectedGroup.length,
+    role: target === layoutEditor.target ? 'layout-container' : 'member',
   }
-  if (nextTarget === null) {
-    layoutBaseline = null
-    updateLayoutPanel(overlay, selectedGroup.length, null, '')
-    return
-  }
-  updateLayoutPanel(overlay, selectedGroup.length, nextTarget, describe(nextTarget, sourceSync(nextTarget)))
 }
 
 function applyLayout(property: LayoutProp, value: string): void {
-  const target = layoutTarget
-  if (applying || target === null) return
-  layoutBaseline ??= readBaseline(target)
-  if (property !== 'display') {
-    const display = readStyleValue(target, 'display')
-    if (display !== 'flex' && display !== 'inline-flex' && display !== 'grid' && display !== 'inline-grid') {
-      target.style.setProperty('display', 'flex', 'important')
-      keepRecord(layoutEdits, 'display', display, 'flex', 'style')
-    }
-  }
-  const from = readStyleValue(target, property)
-  if (from === value) return
-  target.style.setProperty(property, value, 'important')
-  keepRecord(layoutEdits, property, from, value, 'style')
-  refreshLayoutPanel()
-  toast(`Previewing ${property}: ${value}`, false)
+  layoutEditor.apply(property, value)
 }
 
 function resetLayoutPreview(): void {
-  const target = layoutTarget
-  const original = layoutBaseline
-  if (target !== null && original !== null) {
-    for (const property of EDIT_PROPERTIES) {
-      if (layoutEdits[property] !== undefined) restoreBaselineProperty(target, original, property)
-    }
-    layoutBaseline = readBaseline(target)
-  }
-  layoutEdits = {}
-  refreshLayoutPanel()
+  layoutEditor.resetPreview()
 }
 
 function stageLayoutChange(): boolean {
-  if (layoutTarget === null || layoutBaseline === null || !hasLayoutEdits()) return false
-  const staged = stageTargetChange(layoutTarget, layoutBaseline, sourceSync(layoutTarget), layoutEdits)
-  layoutEdits = {}
-  layoutBaseline = readBaseline(layoutTarget)
-  refreshLayoutPanel()
-  return staged
+  return layoutEditor.stage()
 }
 
 async function resolveAsync(el: Element, seq: number): Promise<void> {
@@ -329,114 +308,12 @@ async function resolveAsync(el: Element, seq: number): Promise<void> {
 }
 
 /* ------------------------------------------------------------------- editing */
-function keepRecord(targetEdits: Partial<Record<EditProp, EditRecord>> | null, prop: EditProp, from: string, to: string, kind: 'move' | 'resize' | 'style'): void {
-  if (targetEdits === null) return
-  const prev = targetEdits[prop]
-  if (prev !== undefined) {
-    prev.to = to
-    return
-  }
-  targetEdits[prop] = { property: prop, from, to, kind }
+function startDrag(event: PointerEvent, mode: DragMode): void {
+  elementEditor.startDrag(event, mode)
 }
 
-function keepRecordLocal(prop: EditProp, from: string, to: string, kind: 'move' | 'resize' | 'style'): void {
-  keepRecord(edits, prop, from, to, kind)
-}
-
-function startDrag(ev: PointerEvent, mode: DragMode): void {
-  const targets = activeTargets()
-  if (applying || targets.length === 0) return
-  ev.preventDefault()
-  ev.stopPropagation()
-
-  const records = new Map<HTMLElement | SVGElement, { baseline: ElementBaseline; edits: Partial<Record<EditProp, EditRecord>>; source: SourceInfo | null }>()
-  for (const target of targets) {
-    records.set(target, {
-      baseline: readBaseline(target),
-      edits: {},
-      source: sourceSync(target),
-    })
-  }
-
-  const startX = ev.clientX
-  const startY = ev.clientY
-  const dragRects = new Map<HTMLElement | SVGElement, DOMRect>()
-  for (const target of targets) {
-    dragRects.set(target, target.getBoundingClientRect())
-  }
-
-  const onMove = (e: PointerEvent): void => {
-    const dx = Math.round(e.clientX - startX)
-    const dy = Math.round(e.clientY - startY)
-    if (dx === 0 && dy === 0) return
-    for (const target of targets) {
-      const record = records.get(target)
-      if (record === undefined) continue
-      const base = record.baseline
-      const gestureRect = dragRects.get(target) ?? target.getBoundingClientRect()
-      if (mode === 'move') {
-        const to = composeMoveTransform(base.transform, dx, dy)
-        target.style.setProperty('transform', to, 'important')
-        keepRecord(record.edits, 'transform', base.transform, to, 'move')
-      }
-      if (mode === 'w' || mode === 'wh') {
-        const outerWidth = Math.max(8, Math.round(gestureRect.width + dx))
-        const cssWidth = base.borderBox ? outerWidth : Math.max(0, outerWidth - base.widthExtras)
-        const to = `${cssWidth}px`
-        target.style.setProperty('width', to, 'important')
-        keepRecord(record.edits, 'width', base.cssWidth, to, 'resize')
-      }
-      if (mode === 'h' || mode === 'wh') {
-        const outerHeight = Math.max(8, Math.round(gestureRect.height + dy))
-        const cssHeight = base.borderBox ? outerHeight : Math.max(0, outerHeight - base.heightExtras)
-        const to = `${cssHeight}px`
-        target.style.setProperty('height', to, 'important')
-        keepRecord(record.edits, 'height', base.cssHeight, to, 'resize')
-      }
-    }
-  }
-
-  const commit = (): void => {
-    for (const [target, record] of records) {
-      const incoming = currentEditList(record.edits)
-      if (incoming.length === 0) continue
-      const targetSource = record.source
-      const targetBaseline = record.baseline
-      const targetEdits = record.edits
-      const content = stageTargetChange(target, targetBaseline, targetSource, targetEdits)
-      if (content) {
-        if (selected === target) {
-          baseline = readBaseline(target)
-          edits = {}
-          source = sourceSync(target)
-        }
-      }
-    }
-    if (selectedGroup.length > 1) {
-      deselect()
-    }
-  }
-
-  const onUp = (): void => {
-    document.removeEventListener('pointermove', onMove, true)
-    document.removeEventListener('pointerup', onUp, true)
-    document.removeEventListener('pointercancel', onUp, true)
-    commit()
-  }
-  document.addEventListener('pointermove', onMove, true)
-  document.addEventListener('pointerup', onUp, true)
-  document.addEventListener('pointercancel', onUp, true)
-}
-
-function restoreInlineStyle(el: HTMLElement | SVGElement, property: string, value: string, priority: string): void {
-  if (value.length === 0) el.style.removeProperty(property)
-  else el.style.setProperty(property, value, priority)
-}
-
-function restoreBaselineProperty(el: HTMLElement | SVGElement, baseline: ElementBaseline, property: EditProp): void {
-  const snapshot = baseline.inlineStyles[property]
-  if (snapshot === undefined) return
-  restoreInlineStyle(el, property, snapshot.value, snapshot.priority)
+function moveSelectionByKeyboard(dx: number, dy: number): void {
+  elementEditor.moveByKeyboard(dx, dy)
 }
 
 function resetOverrides(notify = true): void {
@@ -458,76 +335,14 @@ function resetOverrides(notify = true): void {
   if (notify) toast('Overrides cleared', false)
 }
 
-function restoreStagedProperty(change: StagedChange, property: string): void {
-  const editProperty = EDIT_PROPERTIES.find((candidate) => candidate === property)
-  if (editProperty === undefined) return
-  const snapshot = change.restore[editProperty]
-  if (snapshot !== undefined) restoreInlineStyle(change.target, property, snapshot.value, snapshot.priority)
-}
-
 function stageTargetChange(
   target: HTMLElement | SVGElement,
   targetBaseline: ElementBaseline,
   targetSource: SourceInfo | null,
-  targetEdits: Partial<Record<EditProp, EditRecord>>,
+  targetEdits: EditMap,
+  selectionGroup?: VisdiffSelectionGroup,
 ): boolean {
-  const incoming = currentEditList(targetEdits)
-  if (incoming.length === 0) return false
-  const element: VisdiffTaskElement = {
-    tag: target.tagName.toLowerCase(),
-    selector: cssPath(target),
-    text: (target.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 80),
-    source: targetSource,
-  }
-  let staged: StagedChange | undefined
-  for (const candidate of pendingChanges) {
-    if (sameElement(candidate.element, element)) {
-      staged = candidate
-      break
-    }
-  }
-  if (staged === undefined) {
-    const effective: EditList = []
-    for (const edit of incoming) {
-      if (edit.from !== edit.to) effective.push({ ...edit })
-    }
-    if (effective.length === 0) {
-      for (const edit of incoming) {
-        const property = EDIT_PROPERTIES.find((candidate) => candidate === edit.property)
-        if (property !== undefined) restoreBaselineProperty(target, targetBaseline, property)
-      }
-      return false
-    }
-    staged = {
-      element,
-      edits: effective,
-      target,
-      restore: { ...targetBaseline.inlineStyles },
-    }
-    pendingChanges.push(staged)
-  } else {
-    for (const edit of incoming) {
-      const existingIndex = staged.edits.findIndex((previous) => previous.property === edit.property)
-      if (existingIndex === -1) {
-        if (edit.from !== edit.to) staged.edits.push({ ...edit })
-        continue
-      }
-      const previous = staged.edits[existingIndex]
-      if (previous === undefined) continue
-      previous.to = edit.to
-      if (previous.from === previous.to) {
-        restoreStagedProperty(staged, edit.property)
-        staged.edits.splice(existingIndex, 1)
-      }
-    }
-  }
-  if (staged.edits.length === 0) {
-    const stagedIndex = pendingChanges.indexOf(staged)
-    if (stagedIndex !== -1) pendingChanges.splice(stagedIndex, 1)
-  }
-  renderPendingChanges()
-  if (pendingChanges.length > 0) toast('Change added to the pending batch', false)
-  return true
+  return changeBatch.stage(target, targetBaseline, targetSource, targetEdits, selectionGroup)
 }
 
 function stageCurrentChange(): boolean {
@@ -543,165 +358,37 @@ function stageCurrentChange(): boolean {
 
 function removeStagedChange(groupIndex: number, property: string): void {
   if (applying) return
-  const group = pendingChanges[groupIndex]
-  if (group === undefined) return
-  const editIndex = group.edits.findIndex((edit) => edit.property === property)
-  if (editIndex === -1) return
-  restoreStagedProperty(group, property)
-  group.edits.splice(editIndex, 1)
-  if (group.edits.length === 0) pendingChanges.splice(groupIndex, 1)
-  renderPendingChanges()
+  changeBatch.remove(groupIndex, property)
 }
 
 function discardPendingChanges(): void {
   if (applying) return
   if (hasEdits() || hasLayoutEdits()) resetOverrides(false)
-  for (const group of pendingChanges) {
-    for (const edit of group.edits) restoreStagedProperty(group, edit.property)
-  }
-  pendingChanges = []
+  changeBatch.discard()
   deselect()
-  renderPendingChanges()
   toast('Pending changes discarded', false)
 }
 
-function openCommentEditor(groupIndex: number, edit: VisdiffEdit): void {
-  const ui = overlay
-  if (ui === null) return
-  const field = ui.commentField
-  field.value = edit.note ?? ''
-  ui.commentSaveBtn.onclick = () => {
-    const trimmed = field.value.trim()
-    if (trimmed.length > 0) edit.note = trimmed
-    else delete edit.note
-    hideCommentEditor()
-    renderPendingChanges()
-  }
-  ui.commentCancelBtn.onclick = () => {
-    hideCommentEditor()
-  }
-  const row = ui.batchList.querySelectorAll('[data-vd-change]')[groupIndex]
-  const rect = row instanceof Element ? row.getBoundingClientRect() : undefined
-  ui.commentEditor.style.left = `${rect ? rect.left : 24}px`
-  ui.commentEditor.style.top = `${rect ? rect.top + rect.height + 8 : 80}px`
-  ui.commentEditor.style.display = 'block'
-  field.focus()
-}
-
-function hideCommentEditor(): void {
-  if (overlay !== null) overlay.commentEditor.style.display = 'none'
-}
-
 function renderPendingChanges(): void {
-  const ui = overlay
-  if (ui === null) return
-  if (pendingChanges.length === 0) batchPanelHidden = false
-  renderOverlayPendingChanges(
-    ui,
-    pendingChanges,
-    {
-      running,
-      applying,
-      hidden: batchPanelHidden,
-    },
-    {
-      editComment: openCommentEditor,
-      removeChange: removeStagedChange,
-    },
-  )
+  batchPanel.render()
 }
 
 function hideBatchPanel(): void {
-  const ui = overlay
-  if (ui === null || pendingChanges.length === 0) return
-  const rect = ui.batchPanel.getBoundingClientRect()
-  const maxLeft = Math.max(0, window.innerWidth - 150)
-  const maxTop = Math.max(0, window.innerHeight - 38)
-  ui.batchRestoreBtn.style.left = `${Math.min(Math.max(rect.left, 0), maxLeft)}px`
-  ui.batchRestoreBtn.style.top = `${Math.min(Math.max(rect.top, 0), maxTop)}px`
-  ui.batchRestoreBtn.style.right = 'auto'
-  ui.batchRestoreBtn.style.bottom = 'auto'
-  batchPanelHidden = true
-  renderPendingChanges()
+  batchPanel.hide()
 }
 
 function showBatchPanel(): void {
-  const ui = overlay
-  if (ui === null) return
-  const rect = ui.batchRestoreBtn.getBoundingClientRect()
-  ui.batchPanel.style.left = `${rect.left}px`
-  ui.batchPanel.style.top = `${rect.top}px`
-  ui.batchPanel.style.right = 'auto'
-  ui.batchPanel.style.bottom = 'auto'
-  batchPanelHidden = false
-  renderPendingChanges()
-  clampBatchPanel()
-}
-
-function clampBatchPanel(): void {
-  const ui = overlay
-  if (ui === null) return
-  const panel = batchPanelHidden ? ui.batchRestoreBtn : ui.batchPanel
-  if (panel.style.display === 'none') return
-  const rect = panel.getBoundingClientRect()
-  const maxLeft = Math.max(0, window.innerWidth - rect.width)
-  const maxTop = Math.max(0, window.innerHeight - rect.height)
-  panel.style.left = `${Math.min(Math.max(rect.left, 0), maxLeft)}px`
-  panel.style.top = `${Math.min(Math.max(rect.top, 0), maxTop)}px`
-  panel.style.right = 'auto'
-  panel.style.bottom = 'auto'
-}
-
-function startBatchPanelDrag(ev: PointerEvent): void {
-  const ui = overlay
-  if (applying || ui === null || batchPanelHidden) return
-  const target = ev.target
-  if (target instanceof Element && target.closest('button') !== null) return
-  ev.preventDefault()
-  ev.stopPropagation()
-  const rect = ui.batchPanel.getBoundingClientRect()
-  const startX = ev.clientX
-  const startY = ev.clientY
-  const pointerId = ev.pointerId
-  ui.batchPanel.style.left = `${rect.left}px`
-  ui.batchPanel.style.top = `${rect.top}px`
-  ui.batchPanel.style.right = 'auto'
-  ui.batchPanel.style.bottom = 'auto'
-  const onMove = (move: PointerEvent): void => {
-    if (move.pointerId !== pointerId) return
-    const maxLeft = Math.max(0, window.innerWidth - rect.width)
-    const maxTop = Math.max(0, window.innerHeight - rect.height)
-    const left = Math.min(Math.max(rect.left + move.clientX - startX, 0), maxLeft)
-    const top = Math.min(Math.max(rect.top + move.clientY - startY, 0), maxTop)
-    ui.batchPanel.style.left = `${left}px`
-    ui.batchPanel.style.top = `${top}px`
-  }
-  const onUp = (end: PointerEvent): void => {
-    if (end.pointerId !== pointerId) return
-    document.removeEventListener('pointermove', onMove, true)
-    document.removeEventListener('pointerup', onUp, true)
-    document.removeEventListener('pointercancel', onUp, true)
-  }
-  document.addEventListener('pointermove', onMove, true)
-  document.addEventListener('pointerup', onUp, true)
-  document.addEventListener('pointercancel', onUp, true)
+  batchPanel.show()
 }
 
 async function save(): Promise<void> {
   if (applying) return
   if (hasEdits() || hasLayoutEdits()) stageCurrentChange()
-  if (pendingChanges.length === 0) {
+  if (changeBatch.isEmpty) {
     toast('No pending visual changes', false)
     return
   }
-  const changes: VisdiffTaskChange[] = []
-  for (const group of pendingChanges) {
-    const editList: EditList = []
-    for (const edit of group.edits) {
-      editList.push({ property: edit.property, from: edit.from, to: edit.to, kind: edit.kind })
-    }
-    if (editList.length > 0) changes.push({ element: group.element, edits: editList })
-  }
+  const changes = changeBatch.taskChanges()
   if (changes.length === 0) {
     toast('No pending visual changes', false)
     return
@@ -731,7 +418,7 @@ async function save(): Promise<void> {
       body: JSON.stringify(payload),
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    pendingChanges = []
+    changeBatch.clear()
     renderPendingChanges()
     toast(`Batch queued with ${changes.length} element(s)`, false)
   } catch (err) {
@@ -745,9 +432,13 @@ async function save(): Promise<void> {
 
 /* -------------------------------------------------------------- interaction */
 function onHover(ev: MouseEvent): void {
-  if (!running || selected !== null) return
+  if (!running) return
   const target = ev.target
   if (!(target instanceof Element) || isSystemUiElement(target) || !document.contains(target)) {
+    hoverBlur()
+    return
+  }
+  if (activeTargets().some((item) => item === target || item.contains(target))) {
     hoverBlur()
     return
   }
@@ -784,65 +475,32 @@ function onPointerDown(ev: PointerEvent): void {
 }
 
 function onKey(ev: KeyboardEvent): void {
-  if (!running || ev.key !== 'Escape') return
-  if (selected !== null) cancelSelection()
-  else exit()
-}
-
-/* ----------------------------------------------------------------- geometry */
-function setBox(node: HTMLElement, rect: DOMRect): void {
-  node.style.display = 'block'
-  node.style.left = `${rect.left}px`
-  node.style.top = `${rect.top}px`
-  node.style.width = `${rect.width}px`
-  node.style.height = `${rect.height}px`
-}
-
-function positionBar(rect: DOMRect): void {
-  const bar = overlay?.bar
-  if (bar === undefined) return
-  const left = Math.min(Math.max(rect.left, 8), Math.max(window.innerWidth - bar.offsetWidth - 8, 8))
-  const nearTop = rect.top >= 46
-  bar.style.left = `${left}px`
-  bar.style.top = `${nearTop ? rect.top - 42 : rect.bottom + 6}px`
-  positionLayoutPanel()
-}
-
-function positionLayoutPanel(): void {
-  const ui = overlay
-  if (ui === null || ui.layoutPanel.style.display === 'none') return
-  const anchor = ui.layoutToggleBtn.getBoundingClientRect()
-  const panel = ui.layoutPanel.getBoundingClientRect()
-  const left = Math.min(
-    Math.max(anchor.right - panel.width, 8),
-    Math.max(window.innerWidth - panel.width - 8, 8),
-  )
-  const below = anchor.bottom + panel.height + 8 <= window.innerHeight - 8
-  const top = below ? anchor.bottom + 8 : anchor.top - panel.height - 8
-  ui.layoutPanel.style.left = `${left}px`
-  ui.layoutPanel.style.top = `${Math.min(Math.max(top, 8), Math.max(window.innerHeight - panel.height - 8, 8))}px`
+  if (!running) return
+  if (ev.key === 'Escape') {
+    if (selected !== null) cancelSelection()
+    else exit()
+    return
+  }
+  const eventTarget = ev.target
+  if (eventTarget instanceof Element && eventTarget.closest('input, textarea, select, [contenteditable="true"], [data-vd-ui]') !== null) return
+  if (ev.altKey || ev.ctrlKey || ev.metaKey) return
+  if (selected === null) return
+  const step = ev.shiftKey ? 10 : 1
+  const delta = {
+    ArrowLeft: [-step, 0],
+    ArrowRight: [step, 0],
+    ArrowUp: [0, -step],
+    ArrowDown: [0, step],
+  }[ev.key]
+  if (delta === undefined) return
+  ev.preventDefault()
+  moveSelectionByKeyboard(delta[0] ?? 0, delta[1] ?? 0)
 }
 
 function positionSelection(): void {
   const ui = overlay
   if (selected === null || ui === null) return
-  if (!document.contains(selected)) {
-    // Preserve the visual edit in the batch even if HMR swaps its DOM node.
-    stageCurrentChange()
-    return
-  }
-  const rect = selected.getBoundingClientRect()
-  setBox(ui.selFrame, rect)
-  ui.handleE.style.display = 'block'
-  ui.handleE.style.left = `${rect.right - 6}px`
-  ui.handleE.style.top = `${rect.top + rect.height / 2 - 6}px`
-  ui.handleS.style.display = 'block'
-  ui.handleS.style.left = `${rect.left + rect.width / 2 - 6}px`
-  ui.handleS.style.top = `${rect.bottom - 6}px`
-  ui.handleSE.style.display = 'block'
-  ui.handleSE.style.left = `${rect.right - 6}px`
-  ui.handleSE.style.top = `${rect.bottom - 6}px`
-  positionBar(rect)
+  updateSelectionPosition(ui, selected, activeTargets(), layoutEditor.target, stageCurrentChange)
 }
 
 function tick(): void {
@@ -868,19 +526,18 @@ function mountUI(): void {
     reset: () => resetOverrides(),
     cancelSelection,
     startDrag,
-    startPanelDrag: startBatchPanelDrag,
+    startPanelDrag: (event) => batchPanel.startDrag(event),
     hideBatchPanel,
     showBatchPanel,
     apply: () => { void save() },
     clear: discardPendingChanges,
     applyLayout,
-    positionLayoutPanel,
   })
 
   document.addEventListener('mousemove', onHover, true)
   document.addEventListener('pointerdown', onPointerDown, true)
   document.addEventListener('keydown', onKey, true)
-  window.addEventListener('resize', clampBatchPanel)
+  window.addEventListener('resize', () => batchPanel.clamp())
   renderPendingChanges()
 }
 

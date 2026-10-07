@@ -10,7 +10,7 @@ export default defineConfig([
     clean: true,
     sourcemap: false,
     target: 'node18',
-    external: ['unplugin', 'vite'],
+    external: ['unplugin', 'vite', '@vue/compiler-dom', '@vue/compiler-sfc', 'svelte/compiler'],
   },
   {
     // npx CLI: help / tasks / clear / serve / mcp

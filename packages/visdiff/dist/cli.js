@@ -14,8 +14,8 @@ import path from "path";
 import { z } from "zod";
 var VisdiffSourceSchema = z.object({
   file: z.string().min(1),
-  line: z.number().finite().optional(),
-  column: z.number().finite().optional(),
+  line: z.number().optional(),
+  column: z.number().optional(),
   component: z.string().optional()
 });
 var VisdiffEditSchema = z.object({
@@ -44,15 +44,21 @@ var VisdiffTaskElementSchema = z.object({
   text: z.string().default(""),
   source: z.union([VisdiffSourceSchema, z.null()]).default(null)
 });
+var VisdiffSelectionGroupSchema = z.object({
+  id: z.string().min(1),
+  selectedCount: z.number().int().min(2),
+  role: z.enum(["member", "layout-container"])
+});
 var VisdiffTaskChangeSchema = z.object({
   element: VisdiffTaskElementSchema,
-  edits: z.array(VisdiffEditSchema).min(1)
+  edits: z.array(VisdiffEditSchema).min(1),
+  selectionGroups: z.array(VisdiffSelectionGroupSchema).optional()
 });
 var VisdiffTaskPayloadSchema = z.object({
   url: z.string().min(1),
   viewport: z.object({
-    width: z.number().finite().nonnegative(),
-    height: z.number().finite().nonnegative()
+    width: z.number().nonnegative(),
+    height: z.number().nonnegative()
   }),
   changes: z.array(VisdiffTaskChangeSchema).min(1),
   note: z.preprocess(
@@ -62,7 +68,7 @@ var VisdiffTaskPayloadSchema = z.object({
 });
 var VisdiffTaskSchema = VisdiffTaskPayloadSchema.extend({
   id: z.string().min(1),
-  receivedAt: z.string().datetime()
+  receivedAt: z.iso.datetime()
 });
 var VisdiffTaskQueueSchema = z.array(VisdiffTaskSchema);
 
@@ -133,26 +139,52 @@ function removePending(root, ids) {
   });
 }
 
+// src/agent-guidance.ts
+var AGENT_WORKFLOW = `Visdiff agent workflow
+
+First-time project setup (do this once per project):
+1. Inspect the project root, package scripts, framework, bundler, and existing configuration before changing anything.
+2. If Visdiff is already integrated, do not add a duplicate plugin. Otherwise, for a Vite project using React, Vue 3, or Svelte, add the Visdiff Vite plugin to the existing Vite config before the framework plugin. Add the package dependency only if the project does not already have it.
+3. Do not edit components or templates to add markers. Visdiff adds development-only source anchors automatically for supported Vite frameworks. Keep the integration out of production builds.
+4. If the project uses another bundler or framework, do not claim equivalent source-anchor support. Use only an existing documented adapter, explain any manual client-script step, and report that source locations may be unavailable. Ask before introducing a custom compiler integration.
+5. Tell the user what one-time config/dependency change was made and how to start or restart the development server. The user opens the running app, makes a visual edit, and applies it; do not invent a task if the queue is empty.
+
+For each visual task:
+1. Read the complete task, including task.note and per-edit notes. Treat notes as user intent and CSS from/to values as observed browser results, not implementation instructions.
+2. Group related changes by selectionGroups.id. A "member" is a selected element; "layout-container" is its shared parent. selectedCount is the number of selected elements, not the number of task changes; a layout-container entry represents one change to their shared parent. Apply related changes together when appropriate.
+3. Inspect element.source and nearby component/styles. Use selector, text, URL, and viewport as runtime context; do not paste selectors or generated CSS blindly into source.
+4. Make the smallest maintainable source change that achieves the requested result. Preserve responsive behavior and unrelated styling. If the note, captured viewport, and CSS delta leave responsive scope unclear, ask before choosing between a breakpoint-specific and global change.
+5. Run the relevant checks and verify the result in the application at the task viewport when possible. If a task is ambiguous or cannot be verified, leave it pending and report the limitation.
+6. Remove only task IDs whose changes were implemented and verified. With the CLI, use "visdiff clear <task-id> [task-id ...]"; never use bare "visdiff clear" for partial completion. With MCP, pass only those IDs to visdiff_clear_tasks.`;
+
 // src/mcp.ts
 function textContent(body) {
   return { content: [{ type: "text", text: JSON.stringify(body, null, 2) }] };
 }
 async function runMcpServer(root) {
   const server = new McpServer({ name: "visdiff", version: "0.1.0" });
-  server.tool(
+  server.registerTool(
     "visdiff_pending_tasks",
-    "List pending visual-edit batches captured with the visdiff browser overlay. Each task contains one or more elements; every element entry has a source anchor and its CSS from/to edits. Apply a batch, then call visdiff_clear_tasks with its task ID.",
-    {},
+    {
+      title: "List pending visual tasks",
+      description: `Read pending visual tasks from the project queue.
+
+${AGENT_WORKFLOW}`,
+      inputSchema: {}
+    },
     async () => {
       const tasks = await readPending(root);
       if (tasks.length === 0) return textContent({ message: "No pending visual tasks." });
       return textContent({ queueFile: queueFile(root), tasks });
     }
   );
-  server.tool(
+  server.registerTool(
     "visdiff_clear_tasks",
-    "Remove only the listed pending task IDs after those visual edits have been applied to the codebase. Tasks created after the agent read the queue remain pending.",
-    { ids: z2.array(z2.string().min(1)).min(1) },
+    {
+      title: "Clear applied visual tasks",
+      description: "Remove only listed task IDs whose changes have been implemented and verified. Do not clear unapplied tasks; tasks not listed remain pending.",
+      inputSchema: { ids: z2.array(z2.string().min(1)).min(1) }
+    },
     async ({ ids }) => {
       const cleared = await removePending(root, ids);
       return textContent({ cleared });
@@ -278,13 +310,16 @@ function createVisdiffHandler(options) {
         }
         chunks.push(chunk);
       }
-      let payload = null;
+      let rawPayload;
       try {
-        payload = parsePayload(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+        rawPayload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
       } catch {
-        payload = null;
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "invalid task payload" }));
+        return true;
       }
-      if (!payload) {
+      const payload = parsePayload(rawPayload);
+      if (payload === null) {
         res.writeHead(400, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: "invalid task payload" }));
         return true;
@@ -358,12 +393,14 @@ Usage: visdiff <command>
 
   mcp            Run the MCP stdio server (tools: visdiff_pending_tasks, visdiff_clear_tasks)
   tasks          Print pending visual tasks (.visdiff/pending.json)
-  clear          Clear the pending task queue
+  instructions   Print the recommended coding-agent workflow
+  clear [ids...] Remove only the listed task IDs; with no IDs, clear the entire queue
   serve [opts]   Start a standalone endpoint server (default port 9090) for non-plugin dev setups
   help           Show this help
 
-This package is not published to npm yet. In this checkout, use:
+From this repository checkout, use:
   npm exec --workspace examples/vite-react -- visdiff tasks
+  npm exec --workspace examples/vite-react -- visdiff instructions
   npm exec --workspace examples/vite-react -- visdiff mcp
 `;
 function parsePortFlag(argv) {
@@ -398,8 +435,15 @@ async function main() {
     case "tasks":
       await printTasks();
       return;
+    case "instructions":
+      console.log(AGENT_WORKFLOW);
+      return;
     case "clear": {
-      const cleared = await clearPending(process.cwd());
+      const ids = argv.slice(1).map((id) => id.trim());
+      if (ids.some((id) => id.length === 0)) {
+        throw new Error("Task IDs must not be empty.");
+      }
+      const cleared = ids.length > 0 ? await removePending(process.cwd(), ids) : await clearPending(process.cwd());
       console.log(`[visdiff] cleared ${cleared} pending task(s)`);
       return;
     }

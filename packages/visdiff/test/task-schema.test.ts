@@ -21,7 +21,7 @@ const sampleTask = {
   ],
 }
 
-test('note is trimmed and omitted when blank', () => {
+void test('note is trimmed and omitted when blank', () => {
   const withNote = VisdiffTaskPayloadSchema.parse({ ...sampleTask, note: '   Keep it brief  ' })
   assert.equal(withNote.note, 'Keep it brief')
 
@@ -29,12 +29,12 @@ test('note is trimmed and omitted when blank', () => {
   assert.equal(withoutNote.note, undefined)
 })
 
-test('drag transform composes from the original baseline instead of accumulating prior transforms', () => {
+void test('drag transform composes from the original baseline instead of accumulating prior transforms', () => {
   assert.equal(composeMoveTransform('rotate(15deg)', 12, -4), 'translate(12px, -4px) rotate(15deg)')
   assert.equal(composeMoveTransform('none', 8, 6), 'translate(8px, 6px)')
 })
 
-test('current edits are copied in stable property order', () => {
+void test('current edits are copied in stable property order', () => {
   const edits = {
     height: { property: 'height', from: '20px', to: '30px', kind: 'resize' as const },
     transform: { property: 'transform', from: 'none', to: 'translate(4px, 0px)', kind: 'move' as const },
@@ -49,7 +49,7 @@ test('current edits are copied in stable property order', () => {
   ])
 })
 
-test('layout CSS edits are valid task edits', () => {
+void test('layout CSS edits are valid task edits', () => {
   const task = VisdiffTaskPayloadSchema.parse({
     ...sampleTask,
     changes: [{
@@ -63,7 +63,33 @@ test('layout CSS edits are valid task edits', () => {
   assert.deepEqual(task.changes[0]?.edits.map((edit) => edit.property), ['display', 'justify-content'])
 })
 
-test('staged changes match by selector and source anchor', () => {
+void test('selection group metadata links selected elements to their layout container', () => {
+  const group = { id: 'selection-1', selectedCount: 2, role: 'member' as const }
+  const task = VisdiffTaskPayloadSchema.parse({
+    ...sampleTask,
+    changes: [
+      {
+        ...sampleTask.changes[0],
+        selectionGroups: [group],
+      },
+      {
+        element: {
+          tag: 'section',
+          selector: '#cards',
+          text: '',
+          source: null,
+        },
+        edits: [{ property: 'gap', from: '8px', to: '16px', kind: 'style' }],
+        selectionGroups: [{ ...group, role: 'layout-container' }],
+      },
+    ],
+  })
+
+  assert.equal(task.changes[0]?.selectionGroups?.[0]?.id, task.changes[1]?.selectionGroups?.[0]?.id)
+  assert.equal(task.changes[1]?.selectionGroups?.[0]?.role, 'layout-container')
+})
+
+void test('staged changes match by selector and source anchor', () => {
   const element = {
     tag: 'button',
     selector: '#save',

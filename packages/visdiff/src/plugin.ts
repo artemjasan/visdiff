@@ -19,9 +19,7 @@ export const unpluginFactory: VisdiffFactory = (options = {}) => {
   return {
     name: 'visdiff',
     buildStart(): void {
-      // Never open a local endpoint during production builds unless explicitly opted in.
       if (options.enabled !== true && process.env.NODE_ENV !== 'development') return
-      // idempotent: watch rebuilds fire buildStart repeatedly; one server per (root, port)
       const existing = servers[key]
       if (existing === undefined) {
         const starting = startStandaloneServer({ root, port }).catch((err) => {
