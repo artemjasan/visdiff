@@ -13,6 +13,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Tailwind CSS detection adds styling guidance to `visdiff instructions` and `visdiff_pending_tasks`.
 - Tasks include `element.classes`, and in Tailwind projects `visdiff tasks` and the MCP tool add per-edit `tailwind` class suggestions (`suggestion`, `exact`, `alternative`, `replaces`), using the project's theme (v3 config spacing/width/height, v4 `@theme` tokens and `--spacing` unit) and breakpoint-aware `responsive` variants (for example `md:gap-4`) based on the task viewport.
 - Tests for client model logic, status output, and styling detection.
+- Browser E2E coverage for React, Vue, and Svelte examples; golden JSON tests for queue, CLI, and MCP output; and HTTP endpoint integration tests.
 - [Roadmap](docs/ROADMAP.md).
 
 ### Changed

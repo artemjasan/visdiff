@@ -13,11 +13,13 @@ npm run check
 
 `npm run check` runs ESLint, TypeScript, and the package tests. Please also run `npm run build` and `npm run docs:build` when your change touches the package build or the documentation.
 
+Browser tests exercise the Vite React, Vue, and Svelte examples. Install Chromium once with `npx playwright install chromium`, then run them with `npm run test:e2e`.
+
 ## Making a change
 
 1. Open an issue first for larger features or behavior changes.
 2. Keep changes focused; avoid unrelated refactors.
-3. Add or update tests in `packages/visdiff/test/` for new behavior.
+3. Add or update unit tests in `packages/visdiff/test/` and browser coverage in `e2e/` when behavior crosses the browser boundary.
 4. Update the docs in `docs/` and the READMEs when user-facing behavior changes.
 5. Add a line to the `Unreleased` section of [CHANGELOG.md](CHANGELOG.md).
 
