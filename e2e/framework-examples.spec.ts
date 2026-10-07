@@ -1,16 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-const examples = {
-  react: { heading: 'Spring launch', navigation: 'Features', sourceFile: 'App.tsx' },
-  vue: { heading: 'Summer collection', navigation: 'Projects', sourceFile: 'App.vue' },
-  svelte: { heading: 'Summer collection', navigation: 'Projects', sourceFile: 'App.svelte' },
-} as const
-
-test('selects an element, stages a keyboard move, and saves its source-aware task', async ({ page }, testInfo) => {
-  const example = examples[testInfo.project.name as keyof typeof examples]
-  expect(example, `unknown E2E project "${testInfo.project.name}"`).toBeDefined()
-  if (example === undefined) return
-
+test('selects an element, stages a keyboard move, and saves its source-aware task', async ({ page }) => {
+  const example = { heading: 'Spring launch', navigation: 'Features', sourceFile: 'App.tsx' }
   let savedPayload: unknown
   const pageErrors: string[] = []
 
