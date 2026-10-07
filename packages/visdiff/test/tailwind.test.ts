@@ -18,6 +18,10 @@ void test('gap and size use the spacing scale', () => {
   assert.deepEqual(suggestTailwind(edit('gap', '16px')), { suggestion: 'gap-4', exact: true })
   assert.equal(suggestTailwind(edit('gap', '0px'))?.suggestion, 'gap-0')
   assert.equal(suggestTailwind(edit('gap', '8px 16px'))?.suggestion, 'gap-y-2 gap-x-4')
+  assert.equal(
+    suggestTailwind(edit('gap', '13px 20px'))?.alternative,
+    'gap-y-[13px] gap-x-[20px]',
+  )
   assert.deepEqual(suggestTailwind(edit('width', '80px')), { suggestion: 'w-20', exact: true })
   assert.equal(suggestTailwind(edit('height', '1px'))?.suggestion, 'h-px')
   assert.equal(suggestTailwind(edit('width', '100%'))?.suggestion, 'w-full')
@@ -38,7 +42,10 @@ void test('existing classes of the same group are reported as replaced', () => {
 })
 
 void test('grid columns and move edits', () => {
-  assert.equal(suggestTailwind(edit('grid-template-columns', '100px 100px 100px'))?.suggestion, 'grid-cols-3')
+  assert.deepEqual(
+    suggestTailwind(edit('grid-template-columns', '100px 100px 100px')),
+    { suggestion: 'grid-cols-[100px_100px_100px]', exact: true },
+  )
   assert.equal(suggestTailwind(edit('grid-template-columns', '100px 1fr'))?.suggestion, 'grid-cols-[100px_1fr]')
   assert.equal(suggestTailwind({ ...edit('transform', 'translate(4px, 0px)'), kind: 'move' }), null)
 })

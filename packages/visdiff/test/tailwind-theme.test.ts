@@ -5,7 +5,7 @@ import path from 'node:path'
 import test from 'node:test'
 import { activeBreakpoint, suggestTailwind } from '../src/tailwind.ts'
 import { loadTailwindTheme, themeFromV3Config, themeFromV4Css, toPx } from '../src/tailwind-theme.ts'
-import { withStylingHints } from '../src/styling.ts'
+import { annotateProjectTasks, detectTailwind } from '../src/styling.ts'
 import type { VisdiffEdit, VisdiffTask } from '../src/types.ts'
 
 const edit = (property: string, to: string): VisdiffEdit => ({ property, from: '', to, kind: 'resize' })
@@ -73,8 +73,14 @@ void test('withStylingHints uses the project theme', async (t) => {
     schemaVersion: 1, note: undefined, id: 'a', receivedAt: '2026-10-07T16:00:00.000Z', url: 'u', viewport: { width: 1, height: 1 },
     changes: [{ element: { tag: 'div', selector: 'div', text: '', source: null }, edits: [edit('gap', '30px')] }],
   }
-  const [out] = await withStylingHints(root, [task]) as Array<{ changes: Array<{ edits: Array<{ tailwind?: { suggestion: string } }> }> }>
-  assert.equal(out?.changes[0]?.edits[0]?.tailwind?.suggestion, 'gap-gutter')
+  const [out] = annotateProjectTasks([task], await detectTailwind(root))
+  const editWithHint = out?.changes[0]?.edits[0]
+  assert.equal(
+    editWithHint !== undefined && 'tailwind' in editWithHint
+      ? editWithHint.tailwind?.suggestion
+      : undefined,
+    'gap-gutter',
+  )
 })
 
 void test('project breakpoints come from v3 screens and v4 --breakpoint-*', () => {

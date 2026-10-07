@@ -19,6 +19,7 @@ test('selects a React element, stages a keyboard move, and saves its source-awar
 
   await page.getByRole('button', { name: 'visdiff' }).click()
   await page.getByRole('heading', { name: 'Spring launch' }).click()
+  await page.getByRole('link', { name: 'Features' }).focus()
   await page.keyboard.press('ArrowRight')
 
   const stagedChange = page.locator('[data-vd-change]')
@@ -29,7 +30,7 @@ test('selects a React element, stages a keyboard move, and saves its source-awar
   await expect(page.locator('[data-vd-toast]')).toContainText('Batch queued with 1 element')
 
   expect(savedPayload).toMatchObject({
-    url: 'http://127.0.0.1:5173/',
+    url: 'http://127.0.0.1:4173/',
     changes: [{
       element: {
         tag: 'h2',

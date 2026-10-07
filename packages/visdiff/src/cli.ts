@@ -3,7 +3,7 @@ import { startStandaloneServer } from './server-core'
 import { clearPending, readPending, removePending } from './queue'
 import { AGENT_WORKFLOW } from './agent-guidance'
 import { formatStatus } from './status'
-import { detectStylingHint, withStylingHints } from './styling'
+import { annotateProjectTasks, detectTailwind, stylingGuidance } from './styling'
 
 const USAGE = `visdiff — browser visual edits → JSON tasks for coding agents
 
@@ -35,12 +35,14 @@ function parsePortFlag(argv: string[]): number {
 }
 
 async function printTasks(): Promise<void> {
-  const tasks = await readPending(process.cwd())
+  const root = process.cwd()
+  const tasks = await readPending(root)
   if (tasks.length === 0) {
     console.log('No pending visual tasks.')
     return
   }
-  console.log(JSON.stringify(await withStylingHints(process.cwd(), tasks), null, 2))
+  const tailwind = await detectTailwind(root)
+  console.log(JSON.stringify(annotateProjectTasks(tasks, tailwind), null, 2))
 }
 
 async function main(): Promise<void> {
@@ -61,7 +63,7 @@ async function main(): Promise<void> {
       console.log(formatStatus(await readPending(process.cwd())))
       return
     case 'instructions': {
-      const hint = await detectStylingHint(process.cwd())
+      const hint = stylingGuidance(await detectTailwind(process.cwd()))
       console.log(hint === '' ? AGENT_WORKFLOW : `${AGENT_WORKFLOW}\n\n${hint}`)
       return
     }

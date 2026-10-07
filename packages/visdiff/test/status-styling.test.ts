@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import { formatStatus } from '../src/status.ts'
-import { detectStylingHint } from '../src/styling.ts'
+import { detectTailwind, stylingGuidance } from '../src/styling.ts'
 import { VisdiffTaskQueueSchema } from '../src/types.ts'
 
 void test('formatStatus summarizes tasks', () => {
@@ -36,14 +36,29 @@ void test('legacy tasks without schemaVersion parse as version 1', () => {
 void test('detectStylingHint finds Tailwind by dependency or config', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'visdiff-style-'))
   try {
-    assert.equal(await detectStylingHint(root), '')
+    assert.equal(stylingGuidance(await detectTailwind(root)), '')
     await writeFile(path.join(root, 'package.json'), JSON.stringify({ devDependencies: { tailwindcss: '^4' } }))
-    assert.match(await detectStylingHint(root), /Tailwind/)
+    assert.match(stylingGuidance(await detectTailwind(root)), /Tailwind/)
     await writeFile(path.join(root, 'package.json'), '{}')
-    assert.equal(await detectStylingHint(root), '')
+    assert.equal(stylingGuidance(await detectTailwind(root)), '')
     await writeFile(path.join(root, 'tailwind.config.ts'), '')
-    assert.match(await detectStylingHint(root), /Tailwind/)
+    assert.match(stylingGuidance(await detectTailwind(root)), /Tailwind/)
   } finally {
     await rm(root, { recursive: true, force: true })
   }
+})
+
+void test('Tailwind version detection prefers core and ignores v3 plugins', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'visdiff-version-'))
+  t.after(async () => rm(root, { recursive: true, force: true }))
+
+  await writeFile(path.join(root, 'package.json'), JSON.stringify({
+    dependencies: { tailwindcss: '^3.4.0', '@tailwindcss/forms': '^0.5.0' },
+  }))
+  assert.equal((await detectTailwind(root))?.v4, false)
+
+  await writeFile(path.join(root, 'package.json'), JSON.stringify({
+    dependencies: { '@tailwindcss/vite': '^4.0.0', '@tailwindcss/forms': '^0.5.0' },
+  }))
+  assert.equal((await detectTailwind(root))?.v4, true)
 })
