@@ -1,6 +1,7 @@
 /node_modules/
 **/.visdiff/
-/examples/
+/examples/*
+!/examples/vite-react/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
 coverage/

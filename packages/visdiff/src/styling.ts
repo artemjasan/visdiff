@@ -54,7 +54,7 @@ export async function detectStylingHint(root: string): Promise<string> {
     + '(and its theme tokens) instead of inline styles or new custom CSS. '
     + 'Edits may carry a "tailwind" hint: "suggestion" is the class(es) for the "to" value, "replaces" lists existing classes it should replace, '
     + 'and exact=false means the value was rounded to the default scale (see "alternative" for an arbitrary value). '
-    + 'Treat hints as starting points: verify the result against the project\'s theme. Remember element.classes shows the current classes.'
+    + '"responsive" is the same suggestion limited to the captured viewport\'s "breakpoint" and up (replacing "replacesAtBreakpoint"); choose it only when the change should not apply on smaller screens, and ask if that is unclear. Treat hints as starting points: verify the result against the project\'s theme. Remember element.classes shows the current classes.'
 }
 
 /** Tasks annotated with Tailwind hints when the project uses Tailwind; otherwise returned unchanged. */

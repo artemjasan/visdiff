@@ -9,6 +9,12 @@ export interface TailwindHint {
   alternative?: string
   /** Existing unprefixed classes on the element that this suggestion should replace. */
   replaces?: string[]
+  /** Largest breakpoint at or below the captured viewport; absent below the smallest breakpoint. */
+  breakpoint?: string
+  /** The suggestion limited to that breakpoint and up (for example `md:gap-4`), for a breakpoint-specific change. */
+  responsive?: string
+  /** Existing classes already prefixed with that breakpoint that the responsive suggestion would replace. */
+  replacesAtBreakpoint?: string[]
 }
 
 export type HintedEdit = VisdiffEdit & { tailwind?: TailwindHint }
@@ -26,6 +32,9 @@ export interface TailwindTheme {
   height: TokenMap
   /** True when the project removed Tailwind's default spacing scale. */
   replaceDefaults: boolean
+  /** Project breakpoints (min-width in px); they extend the defaults unless `replaceScreens`. */
+  screens: TokenMap
+  replaceScreens: boolean
   /** v4 `--spacing` base unit in px (default 4). */
   unit: number
 }
@@ -34,6 +43,26 @@ export interface TailwindOptions {
   /** Tailwind v4 accepts any spacing multiple (`w-31`); v3 only the default scale. */
   v4?: boolean
   theme?: TailwindTheme
+  /** Captured viewport width in px; enables breakpoint hints. */
+  viewportWidth?: number
+}
+
+const DEFAULT_SCREENS: TokenMap = [['sm', 640], ['md', 768], ['lg', 1024], ['xl', 1280], ['2xl', 1536]]
+
+/** Active breakpoint name for a viewport width, or null below the smallest breakpoint. */
+export function activeBreakpoint(width: number, theme?: TailwindTheme): string | null {
+  const base = theme?.replaceScreens === true ? [] : DEFAULT_SCREENS
+  const merged = new Map<string, number>(base)
+  for (const [name, px] of theme?.screens ?? []) merged.set(name, px)
+  let active: string | null = null
+  let best = -1
+  for (const [name, px] of merged) {
+    if (px <= width && px > best) {
+      active = name
+      best = px
+    }
+  }
+  return active
 }
 
 interface Scale {
@@ -190,7 +219,21 @@ export function suggestTailwind(edit: VisdiffEdit, classes: string[] = [], optio
   const replaces = pattern === undefined
     ? []
     : classes.filter((name) => !name.includes(':') && pattern.test(name) && !suggested.has(name))
-  return { ...base, ...(replaces.length > 0 ? { replaces } : {}) }
+  const hint: TailwindHint = { ...base, ...(replaces.length > 0 ? { replaces } : {}) }
+
+  const breakpoint = options.viewportWidth === undefined ? null : activeBreakpoint(options.viewportWidth, options.theme)
+  if (breakpoint !== null) {
+    hint.breakpoint = breakpoint
+    const responsive = base.suggestion.split(' ').map((name) => `${breakpoint}:${name}`)
+    hint.responsive = responsive.join(' ')
+    const prefix = `${breakpoint}:`
+    const atBreakpoint = pattern === undefined
+      ? []
+      : classes.filter((name) => name.startsWith(prefix) && !name.slice(prefix.length).includes(':')
+        && pattern.test(name.slice(prefix.length)) && !responsive.includes(name))
+    if (atBreakpoint.length > 0) hint.replacesAtBreakpoint = atBreakpoint
+  }
+  return hint
 }
 
 /** Attach Tailwind hints to every edit that has one. Input tasks are not mutated. */
@@ -200,7 +243,7 @@ export function annotateTasks(tasks: VisdiffTask[], options: TailwindOptions = {
     changes: task.changes.map((change) => ({
       ...change,
       edits: change.edits.map((edit): HintedEdit => {
-        const hint = suggestTailwind(edit, change.element.classes, options)
+        const hint = suggestTailwind(edit, change.element.classes, { ...options, viewportWidth: task.viewport.width })
         return hint === null ? edit : { ...edit, tailwind: hint }
       }),
     })),

@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "workspaces": [
-    "packages/visdiff"
+    "packages/visdiff",
+    "examples/vite-react"
   ],
   "scripts": {
     "build": "npm run build --workspace packages/visdiff",
@@ -13,12 +14,14 @@
     "docs:preview": "vitepress preview docs",
     "lint": "eslint packages/visdiff/src packages/visdiff/test packages/visdiff/tsup.config.ts",
     "typecheck": "npm run typecheck --workspace packages/visdiff",
-    "check": "npm run lint && npm run typecheck && npm test --workspace packages/visdiff"
+    "check": "npm run lint && npm run typecheck && npm test --workspace packages/visdiff",
+    "test:e2e": "playwright test"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "vitepress": "^1.6.4"
   }
 }

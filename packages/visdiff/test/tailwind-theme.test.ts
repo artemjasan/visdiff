@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
-import { suggestTailwind } from '../src/tailwind.ts'
+import { activeBreakpoint, suggestTailwind } from '../src/tailwind.ts'
 import { loadTailwindTheme, themeFromV3Config, themeFromV4Css, toPx } from '../src/tailwind-theme.ts'
 import { withStylingHints } from '../src/styling.ts'
 import type { VisdiffEdit, VisdiffTask } from '../src/types.ts'
@@ -75,4 +75,18 @@ void test('withStylingHints uses the project theme', async (t) => {
   }
   const [out] = await withStylingHints(root, [task]) as Array<{ changes: Array<{ edits: Array<{ tailwind?: { suggestion: string } }> }> }>
   assert.equal(out?.changes[0]?.edits[0]?.tailwind?.suggestion, 'gap-gutter')
+})
+
+void test('project breakpoints come from v3 screens and v4 --breakpoint-*', () => {
+  const v3 = themeFromV3Config({ theme: { extend: { screens: { tablet: '900px' } } } })
+  assert.equal(activeBreakpoint(950, v3), 'tablet')
+  assert.equal(activeBreakpoint(700, v3), 'sm')
+  const replaced = themeFromV3Config({ theme: { screens: { phone: '480px', desk: '1200px' } } })
+  assert.equal(activeBreakpoint(1300, replaced), 'desk')
+  assert.equal(activeBreakpoint(300, replaced), null)
+  const v4 = themeFromV4Css(['@theme { --breakpoint-3xl: 120rem; }'])
+  assert.equal(activeBreakpoint(2000, v4), '3xl')
+  const reset = themeFromV4Css(['@theme { --breakpoint-*: initial; --breakpoint-tab: 700px; }'])
+  assert.equal(activeBreakpoint(800, reset), 'tab')
+  assert.equal(activeBreakpoint(600, reset), null)
 })

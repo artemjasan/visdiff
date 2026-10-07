@@ -3,7 +3,7 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { TailwindTheme, TokenMap } from './tailwind'
 
-const EMPTY: TailwindTheme = { spacing: [], width: [], height: [], replaceDefaults: false, unit: 4 }
+const EMPTY: TailwindTheme = { spacing: [], width: [], height: [], replaceDefaults: false, screens: [], replaceScreens: false, unit: 4 }
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', 'coverage', '.git', '.visdiff', '.next', '.nuxt', '.svelte-kit'])
 const MAX_CSS_FILES = 200
 const MAX_CSS_BYTES = 256 * 1024
@@ -40,11 +40,14 @@ export function themeFromV3Config(config: unknown): TailwindTheme {
   if (theme === undefined) return EMPTY
   const extend = record(theme.extend)
   const spacingOverride = record(theme.spacing)
+  const screensOverride = record(theme.screens)
   return {
     spacing: [...tokensFrom(spacingOverride), ...tokensFrom(extend?.spacing)],
     width: [...tokensFrom(record(theme.width)), ...tokensFrom(extend?.width)],
     height: [...tokensFrom(record(theme.height)), ...tokensFrom(extend?.height)],
     replaceDefaults: spacingOverride !== undefined,
+    screens: [...tokensFrom(screensOverride), ...tokensFrom(extend?.screens)],
+    replaceScreens: screensOverride !== undefined,
     unit: 4,
   }
 }
@@ -68,10 +71,12 @@ function themeBlocks(css: string): string[] {
   }
 }
 
-/** Tailwind v4: read `--spacing`, `--spacing-*`, `--width-*` and `--height-*` from `@theme` blocks. */
+/** Tailwind v4: read `--spacing`, `--spacing-*`, `--width-*`, `--height-*` and `--breakpoint-*` from `@theme` blocks. */
 export function themeFromV4Css(cssFiles: string[]): TailwindTheme {
   let unit = 4
   let replaceDefaults = false
+  let replaceScreens = false
+  const screens: Array<readonly [string, number]> = []
   const spacing: Array<readonly [string, number]> = []
   const width: Array<readonly [string, number]> = []
   const height: Array<readonly [string, number]> = []
@@ -85,6 +90,11 @@ export function themeFromV4Css(cssFiles: string[]): TailwindTheme {
           if (px !== null && px > 0) unit = px
         } else if (name === 'spacing-*') {
           if (value.trim() === 'initial') replaceDefaults = true
+        } else if (name === 'breakpoint-*') {
+          if (value.trim() === 'initial') replaceScreens = true
+        } else if (name.startsWith('breakpoint-')) {
+          const px = toPx(value)
+          if (px !== null && px >= 0) screens.push([name.slice('breakpoint-'.length), px])
         } else if (name.startsWith('spacing-')) {
           const px = toPx(value)
           if (px !== null && px >= 0) spacing.push([name.slice('spacing-'.length), px])
@@ -98,7 +108,7 @@ export function themeFromV4Css(cssFiles: string[]): TailwindTheme {
       }
     }
   }
-  return { spacing, width, height, replaceDefaults, unit }
+  return { spacing, width, height, replaceDefaults, screens, replaceScreens, unit }
 }
 
 async function collectCss(root: string): Promise<string[]> {

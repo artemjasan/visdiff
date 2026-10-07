@@ -60,3 +60,30 @@ void test('annotateTasks adds hints without mutating input', () => {
   assert.equal(edits?.[1]?.tailwind, undefined)
   assert.equal('tailwind' in (tasks[0]?.changes[0]?.edits[0] ?? {}), false)
 })
+
+void test('breakpoint hints follow the captured viewport', () => {
+  const at = (viewportWidth: number, classes: string[] = []) => suggestTailwind(edit('gap', '16px'), classes, { viewportWidth })
+  assert.equal(at(500)?.breakpoint, undefined)
+  assert.equal(at(500)?.responsive, undefined)
+  assert.deepEqual([at(768)?.breakpoint, at(768)?.responsive], ['md', 'md:gap-4'])
+  assert.equal(at(1279)?.breakpoint, 'lg')
+  assert.equal(at(1600)?.breakpoint, '2xl')
+  assert.equal(suggestTailwind(edit('gap', '8px 16px'), [], { viewportWidth: 800 })?.responsive, 'md:gap-y-2 md:gap-x-4')
+  assert.equal(suggestTailwind(edit('gap', '16px'))?.breakpoint, undefined)
+})
+
+void test('existing classes at the active breakpoint are reported separately', () => {
+  const hint = suggestTailwind(edit('gap', '16px'), ['gap-2', 'md:gap-3', 'lg:gap-5', 'md:hover:gap-6'], { viewportWidth: 900 })
+  assert.deepEqual(hint?.replaces, ['gap-2'])
+  assert.deepEqual(hint?.replacesAtBreakpoint, ['md:gap-3'])
+})
+
+void test('annotateTasks uses the task viewport and project screens', () => {
+  const tasks = VisdiffTaskQueueSchema.parse([{
+    id: 'a', receivedAt: '2026-10-07T16:00:00.000Z', url: 'u', viewport: { width: 1100, height: 700 },
+    changes: [{ element: { tag: 'div', selector: 'div' }, edits: [{ property: 'display', from: 'block', to: 'flex', kind: 'style' }] }],
+  }])
+  const theme = { spacing: [], width: [], height: [], replaceDefaults: false, screens: [['tablet', 1000]] as const, replaceScreens: true, unit: 4 }
+  const [out] = annotateTasks(tasks, { theme })
+  assert.equal(out?.changes[0]?.edits[0]?.tailwind?.responsive, 'tablet:flex')
+})
