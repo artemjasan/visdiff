@@ -94,15 +94,6 @@ npm run docs:build
 
 `npm run check` runs ESLint, TypeScript checks, and package tests. CI runs these checks and the package and documentation builds on supported Node.js versions.
 
-## Repository map
-
-- `packages/visdiff/src/client/` — browser selection, editing, layout, batch state, and geometry.
-- `packages/visdiff/src/client/overlay.ts` — browser overlay UI.
-- `packages/visdiff/src/source-inject.ts` — development-time source locations for JSX/TSX, Vue SFC templates, and Svelte markup.
-- `packages/visdiff/src/vite-plugin.ts` and `plugin.ts` — Vite and other bundler adapters.
-- `packages/visdiff/src/cli.ts` and `mcp.ts` — CLI and MCP agent interfaces.
-- `packages/visdiff/src/queue.ts` — validated, atomic task-queue operations.
-- `packages/visdiff/test/` — task-contract and queue tests.
 ## License
 
 MIT. See [LICENSE](LICENSE).
