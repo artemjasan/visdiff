@@ -26,7 +26,7 @@ export default defineConfig({
 })
 ```
 
-The adapter runs only during development. It injects the browser overlay and records tasks in `<vite-root>/.visdiff/pending.json`.
+The adapter runs only during development. It injects the browser overlay and records tasks in `<vite-root>/.visdiff/tasks.json`.
 
 Vite source anchors are supported for React JSX/TSX, Vue 3 SFC templates, and Svelte 4/5 markup. Register `visdiffVite()` before the framework plugin. Vue/Svelte elements created outside their templates may not have source anchors; task capture still includes runtime element context.
 
@@ -75,4 +75,4 @@ export default {
 
 Generic adapters do not inject HTML. Add a development-only script tag using the endpoint URL printed at startup. React JSX/TSX anchors require the Visdiff transform to run before the framework JSX compiler. Vue and Svelte anchors are currently available through the Vite adapter only. See the [framework and bundler support matrix](https://artemjasan.github.io/visdiff/reference/adapters). Turbopack is not supported.
 
-For the complete demo, development, and architecture guide, see the [repository README](https://github.com/artemjasan/visdiff#readme).
+For the full setup, development, and architecture guide, see the [repository README](https://github.com/artemjasan/visdiff#readme).

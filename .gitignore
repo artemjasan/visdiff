@@ -1,5 +1,6 @@
 /node_modules/
 **/.visdiff/
+/examples/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
 coverage/

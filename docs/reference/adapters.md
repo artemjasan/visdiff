@@ -1,17 +1,17 @@
 # Framework and bundler support
 
-Visdiff has one fully integrated path and a set of lower-level adapters. The table separates automatic source anchors from loading the browser overlay; these are different capabilities.
+Vite injects the overlay and endpoint. Generic adapters require a manual client script. Source anchors vary by framework:
 
 ## Support matrix
 
-| Framework | Vite integration | Generic adapters (Rollup, Webpack, Rspack, Rsbuild, Rolldown, esbuild, Farm, Bun) |
+| Framework | Vite | Generic adapters |
 |---|---|---|
-| React JSX/TSX | **Integrated** — overlay, task endpoint, and source anchors | **Available with setup** — adapter and JSX/TSX source transform; add the client script manually and ensure Visdiff runs before the framework compiler |
-| Vue 3 SFC | **Integrated** — overlay, task endpoint, and template source anchors | **Overlay only** — add the client script manually; Vue template anchors are not added |
-| Svelte 4/5 | **Integrated** — overlay, task endpoint, and markup source anchors | **Overlay only** — add the client script manually; Svelte markup anchors are not added |
-| Angular templates | **Not integrated** | **Overlay only** — add the client script manually; no Angular template source anchors |
+| React JSX/TSX | Overlay, endpoint, and source anchors | Adapter + manual client; anchors if Visdiff runs before the framework compiler |
+| Vue 3 SFC | Overlay, endpoint, and template anchors | Adapter + manual client; no template anchors |
+| Svelte 4/5 | Overlay, endpoint, and markup anchors | Adapter + manual client; no markup anchors |
+| Angular templates | Not integrated | Adapter + manual client; no template anchors |
 
-“Integrated” describes the implemented Vite code path, not a claim that every framework version, plugin combination, or application has a separate end-to-end test. When source anchors are unavailable, task capture still includes the rendered element context and observed CSS edits. Runtime-created DOM may also lack a source location.
+Anchors may be unavailable for runtime-created DOM. Without an anchor, tasks still include rendered element context and observed CSS edits.
 
 ## Vite
 
@@ -53,13 +53,11 @@ export default defineConfig({
 })
 ```
 
-Place Visdiff before the framework plugin so source markers are added before compilation.
-
-For Vue and Svelte, keep the project's existing Vue/Svelte Vite plugin after `visdiffVite()`. Visdiff adds the same `data-visdiff-src` metadata to template elements without requiring edits to components or templates. The relevant framework compiler is loaded only when Visdiff transforms that framework's files.
+Keep the existing framework plugin after `visdiffVite()`. No component markers are required.
 
 ## Generic bundler adapters
 
-Generic adapter entrypoints are available for Rollup, Webpack, Rspack, Rsbuild, Rolldown, esbuild, Farm, and Bun:
+Entry points are available for Rollup, Webpack, Rspack, Rsbuild, Rolldown, esbuild, Farm, and Bun. For example:
 
 ```ts
 import { visdiffWebpack } from 'visdiff/webpack'
@@ -75,6 +73,6 @@ Generic adapters do not inject HTML. Add a development-only script using the end
 <script defer src="http://127.0.0.1:9090/__visdiff/client.js"></script>
 ```
 
-For React JSX/TSX, the generic adapter can add source anchors when its transform runs before the framework compiler. These adapters do not add Vue or Svelte template anchors. Plugin integration, client-script loading, and queue writes must be verified for the specific bundler setup.
+For React JSX/TSX, source anchors require the Visdiff transform to run before the framework compiler. Generic adapters do not add Vue or Svelte template anchors.
 
-All adapters and source instrumentation are development-only. Turbopack is not supported.
+All adapters and source instrumentation are development-only. Verify client loading and queue writes in the target bundler. Turbopack is not supported.

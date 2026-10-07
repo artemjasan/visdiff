@@ -4,7 +4,7 @@ import path from 'node:path'
 import { VisdiffTaskQueueSchema, type VisdiffTask } from './types'
 
 const QUEUE_DIR = '.visdiff'
-const QUEUE_FILE = 'pending.json'
+const QUEUE_FILE = 'tasks.json'
 let mutationTail: Promise<void> = Promise.resolve()
 
 export function queueFile(root: string = process.cwd()): string {

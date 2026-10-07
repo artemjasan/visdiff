@@ -71,7 +71,7 @@ import { randomBytes } from "crypto";
 import { mkdir, readFile, rename, writeFile } from "fs/promises";
 import path from "path";
 var QUEUE_DIR = ".visdiff";
-var QUEUE_FILE = "pending.json";
+var QUEUE_FILE = "tasks.json";
 var mutationTail = Promise.resolve();
 function queueFile(root = process.cwd()) {
   return path.join(root, QUEUE_DIR, QUEUE_FILE);

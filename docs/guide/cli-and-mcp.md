@@ -1,10 +1,10 @@
 # CLI and MCP
 
-Both interfaces read and update the same project queue at `.visdiff/pending.json`. The CLI is convenient for terminal-based agents; MCP makes the same operations available as agent tools. The first-time project setup and repeatable task loop are described in the [agent workflow](/guide/agent-workflow).
+Both interfaces operate on `.visdiff/tasks.json` in the current project.
 
 ## CLI
 
-Install `visdiff` in the project or run it on demand with `npx`:
+Run from the project root:
 
 ```bash
 npx -y visdiff tasks
@@ -12,10 +12,13 @@ npx -y visdiff instructions
 npx -y visdiff clear <task-id> [task-id ...]
 ```
 
-- `tasks` prints the full queued JSON.
-- `instructions` prints setup guidance and the recommended task workflow for the agent.
-- `clear <task-id...>` removes only the listed task IDs.
-- `clear` with no IDs clears the entire queue; use it only when that is intended.
+| Command | Purpose |
+|---|---|
+| `tasks` | Print all pending task JSON. |
+| `instructions` | Print setup guidance, the agent workflow, and the task-field reading guide. |
+| `clear <task-id...>` | Remove only the listed task IDs. |
+
+Bare `clear` removes the entire queue. Use it only when that is intended.
 
 ## MCP
 
@@ -25,13 +28,20 @@ Register the stdio server with Claude Code:
 claude mcp add visdiff -- npx -y visdiff mcp
 ```
 
-The server exposes two tools:
+| Tool | Purpose |
+|---|---|
+| `visdiff_pending_tasks` | Return queued tasks and point agents to the workflow and task-format resources. |
+| `visdiff_clear_tasks` | Remove the supplied task IDs. |
 
-- **`visdiff_pending_tasks`** — returns pending tasks and first-time setup/task workflow guidance.
-- **`visdiff_clear_tasks`** — removes only task IDs supplied by the agent.
+The server also exposes these read-only resources:
 
-The server communicates over local stdio; it is not an HTTP API. Other MCP clients can launch `npx -y visdiff mcp`, using their own configuration syntax.
+| Resource URI | Purpose |
+|---|---|
+| `visdiff://agent-workflow` | Project setup, task handling, verification, and queue-clearing workflow. |
+| `visdiff://task-format` | Task fields and guidance for interpreting captured browser changes. |
+
+The server uses local stdio, not HTTP. Other MCP clients can run `npx -y visdiff mcp` with their own configuration syntax.
 
 ## Queue safety
 
-If an agent read task `A` and a user later creates task `B`, clearing `A` by ID preserves `B`. Avoid whole-queue clearing during partial processing. If implementation or verification is incomplete, do not clear that task.
+Clear only IDs whose changes were implemented and verified. Clearing task `A` by ID preserves a later task `B`; never clear the whole queue during partial processing.

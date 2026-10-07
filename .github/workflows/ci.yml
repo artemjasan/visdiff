@@ -35,3 +35,22 @@ jobs:
       - run: npm run typecheck
       - run: npm run build --workspace packages/visdiff
       - run: npm run docs:build
+
+  tag-build:
+    name: Tag successful main build
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Create build tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          tag="build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          git tag -a "$tag" "$GITHUB_SHA" -m "Successful CI build ${GITHUB_RUN_NUMBER}"
+          git push origin "$tag"

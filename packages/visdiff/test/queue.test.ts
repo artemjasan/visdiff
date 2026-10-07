@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
-import { appendTask, readPending, removePending } from '../src/queue.ts'
+import { appendTask, queueFile, readPending, removePending } from '../src/queue.ts'
 import type { VisdiffTask } from '../src/types.ts'
 
 function task(id: string): VisdiffTask {
@@ -24,6 +24,7 @@ void test('removing applied task IDs preserves later tasks and ignores unknown I
   const root = await mkdtemp(path.join(os.tmpdir(), 'visdiff-queue-test-'))
   t.after(async () => rm(root, { recursive: true, force: true }))
 
+  assert.equal(queueFile(root), path.join(root, '.visdiff', 'tasks.json'))
   await appendTask(root, task('applied'))
   const agentSnapshot = await readPending(root)
   await appendTask(root, task('created-later'))

@@ -2,7 +2,7 @@ import {
   VISDIFF_BASE,
   createVisdiffHandler,
   injectSource
-} from "./chunk-MPKQVPP5.js";
+} from "./chunk-Z65RNOHF.js";
 
 // src/vite-plugin.ts
 function visdiffVite(options = {}) {

@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   base: '/visdiff/',
   title: 'visdiff',
-  description: 'Turn visual UI feedback into actionable tasks for coding agents.',
+  description: 'Capture browser edits with intent and source context for coding agents.',
   cleanUrls: true,
   themeConfig: {
     siteTitle: 'visdiff',
@@ -42,7 +42,7 @@ export default defineConfig({
       text: 'Edit this page on GitHub',
     },
     footer: {
-      message: 'Visual feedback, ready for your coding agent',
+      message: 'Show your agent what to change',
       copyright: 'Released under the MIT License.',
     },
   },

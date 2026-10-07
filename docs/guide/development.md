@@ -5,27 +5,18 @@
 - Node.js `^20.19.0 || >=22.12.0`
 - npm
 
-## Set up the repository
-
-```bash
-npm ci
-npm run build
-npm run demo
-```
-
-The demo is served at [http://127.0.0.1:5173](http://127.0.0.1:5173).
-
-Vue and Svelte demos run with `npm run demo:vue` and `npm run demo:svelte` at ports `5174` and `5175`. Build all framework demos with `npm run build:examples`.
-
 ## Checks
 
 ```bash
+npm ci
 npm run check
 npm run build
 npm run docs:build
 ```
 
-`npm run check` runs ESLint, TypeScript checks for the package and examples, and package tests. CI runs lint on Node 20.19 and type checks, tests, and builds across the supported Node matrix.
+`npm run check` runs ESLint, TypeScript, and package tests. CI runs checks and package/docs builds on supported Node versions.
+
+After all checks pass on `main`, CI creates an annotated `build-<run>-<attempt>` tag. These build tags do not publish the npm package; releases use separate `v*` tags.
 
 ## Main areas
 
@@ -36,11 +27,10 @@ npm run docs:build
 - `packages/visdiff/src/cli.ts` and `mcp.ts` — CLI and MCP agent interfaces.
 - `packages/visdiff/src/queue.ts` — task validation and queue operations.
 - `packages/visdiff/test/` — task contract and queue tests.
-- `examples/vite-react/`, `examples/vite-vue/`, and `examples/vite-svelte/` — runnable framework demos using Vite and the Visdiff adapter.
 - `docs/` — VitePress documentation site.
 
 ## Documentation site
 
-Run the docs locally with `npm run docs:dev`. Build a production site with `npm run docs:build`; preview it with `npm run docs:preview`.
+Run the docs locally with `npm run docs:dev`; build and preview with `npm run docs:build` and `npm run docs:preview`.
 
 The site uses the `/visdiff/` base path for GitHub Pages. Deployment runs from the default branch through `.github/workflows/pages.yml`. In repository settings, set **Pages → Build and deployment → Source** to **GitHub Actions**.

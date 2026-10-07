@@ -1,47 +1,33 @@
 ---
 layout: home
-title: Visual feedback, ready for your coding agent
+title: Visual edits as structured task JSON
 titleTemplate: false
 
 hero:
-  name: visdiff
-  text: Visual feedback.<br>Agent-ready tasks.
-  tagline: Make the change in the browser. Let your coding agent make it real in source.
+  name: Show your agent
+  text: what to change.
+  tagline: Capture intent, source, and edits; let your coding agent implement the change.
   actions:
     - theme: brand
-      text: Get started
+      text: Add Visdiff
       link: /guide/getting-started
     - theme: alt
-      text: How agents use tasks
-      link: /guide/agent-workflow
+      text: Inspect the task format
+      link: /reference/task-format
 
 features:
-  - title: Work from the rendered page
-    details: Select, move, resize, and adjust layouts in the app you already have running.
-  - title: Keep the intent with the edit
-    details: Add task and per-change notes so the agent understands what matters, not just what moved.
-  - title: Preserve relationships
-    details: Shared selection IDs connect multi-selected elements with changes to their common layout container.
-  - title: Meet the agent where it works
-    details: Read and clear tasks through simple CLI commands or MCP tools.
+  - title: Capture
+    details: Select and adjust elements in the running app.
+  - title: Add context
+    details: Attach intent, source locations, and observed CSS changes.
+  - title: Hand off
+    details: Let an agent inspect the source, implement, and verify.
 ---
 
-## Try Visdiff
+## Documentation
 
-Run the demo against a local development server to use the real browser overlay, source anchors, project task queue, and CLI/MCP agent workflow.
-
-[Get started](/guide/getting-started)
-
-## From browser to source change
-
-**Browser overlay** → **Project queue** → **CLI / MCP agent** → **Source change** → **Verified task**
-
-Visdiff captures context and observed visual changes. Your agent remains responsible for inspecting the source, choosing a maintainable implementation, and verifying it.
-
-## Start here
-
-- [Getting started](/guide/getting-started) — run the demo and configure a bundler.
-- [Agent workflow](/guide/agent-workflow) — understand how to interpret and apply tasks safely.
-- [CLI and MCP](/guide/cli-and-mcp) — connect an agent and manage its queue.
-- [Task format](/reference/task-format) — inspect the fields passed to an agent.
-- [Development](/guide/development) — run checks and work on the repository.
+- [Getting started](/guide/getting-started) — install and configure the Vite plugin.
+- [Agent workflow](/guide/agent-workflow) — interpret tasks and verify source changes.
+- [CLI and MCP](/guide/cli-and-mcp) — read and clear queued tasks.
+- [Task format](/reference/task-format) — inspect the JSON contract.
+- [Bundler support](/reference/adapters) — compare integrations and source anchors.

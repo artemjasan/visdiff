@@ -8,7 +8,7 @@ const USAGE = `visdiff — browser visual edits → JSON tasks for coding agents
 Usage: visdiff <command>
 
   mcp            Run the MCP stdio server (tools: visdiff_pending_tasks, visdiff_clear_tasks)
-  tasks          Print pending visual tasks (.visdiff/pending.json)
+  tasks          Print visual tasks (.visdiff/tasks.json)
   instructions   Print the recommended coding-agent workflow
   clear [ids...] Remove only the listed task IDs; with no IDs, clear the entire queue
   serve [opts]   Start a standalone endpoint server (default port 9090) for non-plugin dev setups

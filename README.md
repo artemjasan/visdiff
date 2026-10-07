@@ -1,6 +1,6 @@
 # visdiff
 
-**Turn visual UI feedback into actionable tasks for coding agents.**
+**Capture a browser edit. Hand your agent the task JSON.**
 
 Visdiff connects a running web page to the source code behind it. Adjust an element in the browser, capture the visual change, and give the resulting task to an agent through its CLI or MCP client.
 
@@ -8,14 +8,14 @@ Visdiff connects a running web page to the source code behind it. Adjust an elem
 [![Node.js](https://img.shields.io/badge/Node.js-20.19%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **Documentation:** explore the [Visdiff guide](https://artemjasan.github.io/visdiff/) or read its source in [`docs/`](docs/). To try the actual browser workflow, [run the local demo](#try-the-demo).
+> **Documentation:** explore the [Visdiff guide](https://artemjasan.github.io/visdiff/) or read its source in [`docs/`](docs/).
 
 ## How it works
 
 ```mermaid
 flowchart LR
     Browser["Running app<br/>Select · move · resize · layout"]
-    Queue["Project task queue<br/>.visdiff/pending.json"]
+    Queue["Project task queue<br/>.visdiff/tasks.json"]
     Agent["Coding agent<br/>CLI or MCP"]
     Source["Source code<br/>Implement · verify"]
 
@@ -28,73 +28,15 @@ flowchart LR
 
 Visdiff does **not** patch source code or make an agent guess from a screenshot alone. It captures the browser result and useful context; the agent inspects the source and chooses a maintainable implementation.
 
-## Try the demo
+## Quick start with Vite
 
 Requirements: Node.js `^20.19.0 || >=22.12.0`.
 
-From the repository root:
-
 ```bash
-npm ci
-npm run build
-npm run demo
+npm install -D visdiff
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173).
-
-Framework examples are available with `npm run demo:vue` at [http://127.0.0.1:5174](http://127.0.0.1:5174) and `npm run demo:svelte` at [http://127.0.0.1:5175](http://127.0.0.1:5175). Build all three with `npm run build:examples`.
-
-1. Click **visdiff**, then select an element.
-2. Drag it, resize it, or use the arrow keys to move it. **Shift + arrow** moves it by 10 px.
-3. Shift-click additional elements to create a multi-selection. If they share a parent, open **Layout** to preview Flex/Grid and alignment changes on that shared container.
-4. Add an optional task note or per-change comment, then click **Apply** to enqueue the task.
-
-Edits collect in the change panel until applied. **Reset** restores the current preview; **Esc** or **✕** cancels the selection; **Clear** discards the unsent batch. Applied preview styles remain until the app's code or HMR replaces them.
-
-## Connect an agent
-
-For a project using Vite, the agent can add the plugin once to the existing Vite config; no component or template annotations are needed. Then start or restart the dev server, make a visual edit in the browser, and apply it to the task queue. The agent reads the task, updates source, verifies the result, and clears only completed task IDs. See the [agent workflow](https://artemjasan.github.io/visdiff/guide/agent-workflow) and [framework/bundler support matrix](https://artemjasan.github.io/visdiff/reference/adapters).
-
-### CLI
-
-Run these commands from the repository root:
-
-```bash
-npm exec --workspace examples/vite-react -- visdiff tasks
-npm exec --workspace examples/vite-react -- visdiff instructions
-npm exec --workspace examples/vite-react -- visdiff clear <task-id> [task-id ...]
-```
-
-- `tasks` prints the full pending task JSON.
-- `instructions` prints the recommended agent workflow.
-- `clear <task-id...>` removes only the listed tasks. Bare `clear` clears the entire queue; use it only when that is intentional.
-
-### MCP
-
-The stdio server exposes two tools: `visdiff_pending_tasks` reads the queue and provides agent guidance; `visdiff_clear_tasks` removes only the supplied task IDs.
-
-For Claude Code, run from the repository root:
-
-```bash
-claude mcp add visdiff -- npm exec --workspace examples/vite-react -- visdiff mcp
-```
-
-Other MCP clients that support local stdio can launch the same `npm exec ... visdiff mcp` command; their configuration format may differ.
-
-## What an agent receives
-
-Each queued task includes:
-
-- **Intent:** optional task-level and per-edit notes.
-- **Location:** page URL, viewport, source file/line when available, and a runtime selector/text description.
-- **Observed result:** CSS property changes with `from` and `to` values, plus an edit kind such as `move`, `resize`, or `style`.
-- **Relationships:** changes from one multi-selection share a `selectionGroups.id`; `member` identifies selected elements and `layout-container` identifies their shared parent.
-
-The CSS values describe what happened in the browser, not necessarily how the source should be written. Agents should inspect the relevant component and styles, implement the smallest maintainable change, run relevant checks, verify the result where possible, and clear only tasks they successfully applied. Ambiguous or unverified tasks should remain pending.
-
-## Framework and bundler support
-
-The Vite adapter injects the overlay and local task endpoint during development. Register `visdiffVite()` before the framework plugin:
+Register the plugin before your framework plugin in the existing Vite configuration:
 
 ```ts
 import { defineConfig } from 'vite'
@@ -106,11 +48,41 @@ export default defineConfig({
 })
 ```
 
-Vite source anchors cover React JSX/TSX, Vue 3 SFC templates, and Svelte 4/5 markup. Register Visdiff before the framework plugin. Vue and Svelte elements created at runtime may not map to a template source location.
+Start your development server, open the app, and click **visdiff** to make and apply a visual task.
 
-Generic adapters are available from `visdiff/rollup`, `visdiff/webpack`, `visdiff/rspack`, `visdiff/rsbuild`, `visdiff/rolldown`, `visdiff/esbuild`, `visdiff/farm`, and `visdiff/bun`. They do not inject HTML: add a development-only script tag using the endpoint URL printed at startup. React JSX/TSX source anchors are available through the generic source transform; Vue/Svelte anchors are currently Vite-only. See the [support matrix](https://artemjasan.github.io/visdiff/reference/adapters) for details. Adapters and source instrumentation are development-only. Turbopack is not supported.
+1. Click **visdiff**, then select an element.
+2. Drag it, resize it, or use the arrow keys to move it. **Shift + arrow** moves it by 10 px.
+3. Shift-click additional elements to create a multi-selection. If they share a parent, open **Layout** to preview Flex/Grid and alignment changes on that shared container.
+4. Add an optional task note or per-change comment, then click **Apply** to enqueue the task.
 
-Install the plugin with `npm install -D visdiff` and run its CLI with `npx -y visdiff <command>`.
+Edits collect in the change panel until applied. **Reset** restores the current preview; **Esc** or **✕** cancels the selection; **Clear** discards the unsent batch. Applied preview styles remain until the app's code or HMR replaces them.
+
+## Connect an agent
+
+Run from the project root to read tasks and agent instructions:
+
+```bash
+npx -y visdiff tasks
+npx -y visdiff instructions
+```
+
+Clear only the task IDs the agent implemented and verified:
+
+```bash
+npx -y visdiff clear <task-id> [task-id ...]
+```
+
+Or connect through MCP. For Claude Code:
+
+```bash
+claude mcp add visdiff -- npx -y visdiff mcp
+```
+
+Other MCP clients can launch `npx -y visdiff mcp` over local stdio. See the [agent workflow](https://artemjasan.github.io/visdiff/guide/agent-workflow) for implementation and verification rules.
+
+## Framework and bundler support
+
+Vite provides the integrated overlay, endpoint, and source anchors for React, Vue, and Svelte. Generic adapters are available for other bundlers and require a manual client script. See the [support matrix](https://artemjasan.github.io/visdiff/reference/adapters) for details. Integrations run in development; Turbopack is not supported.
 
 ## Development
 
@@ -118,10 +90,9 @@ Install the plugin with `npm install -D visdiff` and run its CLI with `npx -y vi
 npm run check
 npm run build
 npm run docs:build
-npm run demo
 ```
 
-`npm run check` runs ESLint, TypeScript checks for the package and demo, and the package tests. CI runs these checks and the build on supported Node.js versions.
+`npm run check` runs ESLint, TypeScript checks, and package tests. CI runs these checks and the package and documentation builds on supported Node.js versions.
 
 ## Repository map
 
@@ -132,8 +103,6 @@ npm run demo
 - `packages/visdiff/src/cli.ts` and `mcp.ts` — CLI and MCP agent interfaces.
 - `packages/visdiff/src/queue.ts` — validated, atomic task-queue operations.
 - `packages/visdiff/test/` — task-contract and queue tests.
-- `examples/vite-react/` — runnable demo application.
-
 ## License
 
 MIT. See [LICENSE](LICENSE).
