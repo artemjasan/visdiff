@@ -5,7 +5,7 @@
 Visdiff connects a running web page to the source code behind it. Adjust an element in the browser, capture the visual change, and give the resulting task to an agent through its CLI or MCP client.
 
 [![CI](https://github.com/artemjasan/visdiff/actions/workflows/ci.yml/badge.svg)](https://github.com/artemjasan/visdiff/actions/workflows/ci.yml)
-[![Node.js](https://img.shields.io/badge/Node.js-20.19%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-22.12%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 > **Documentation:** explore the [Visdiff guide](https://artemjasan.github.io/visdiff/) or read its source in [`docs/`](docs/).
@@ -30,7 +30,7 @@ Visdiff does **not** patch source code or make an agent guess from a screenshot 
 
 ## Quick start with Vite
 
-Requirements: Node.js `^20.19.0 || >=22.12.0`.
+Requirements: Node.js `>=22.12.0`.
 
 ```bash
 npm install -D visdiff

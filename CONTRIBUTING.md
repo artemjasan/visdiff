@@ -4,7 +4,7 @@ Thanks for helping improve visdiff. See the [roadmap](docs/ROADMAP.md) for plann
 
 ## Setup
 
-Requires Node.js `^20.19.0 || >=22.12.0` and npm.
+Requires Node.js `>=22.12.0` and npm.
 
 ```bash
 npm ci

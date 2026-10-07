@@ -10,7 +10,7 @@ Browse the [Visdiff guide](https://artemjasan.github.io/visdiff/) for setup, the
 npm install -D visdiff
 ```
 
-Node.js requirement: `^20.19.0 || >=22.12.0`.
+Node.js requirement: `>=22.12.0`.
 
 ## Vite setup
 
