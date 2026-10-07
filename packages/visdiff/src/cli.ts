@@ -3,7 +3,7 @@ import { startStandaloneServer } from './server-core'
 import { clearPending, readPending, removePending } from './queue'
 import { AGENT_WORKFLOW } from './agent-guidance'
 import { formatStatus } from './status'
-import { detectStylingHint } from './styling'
+import { detectStylingHint, withStylingHints } from './styling'
 
 const USAGE = `visdiff — browser visual edits → JSON tasks for coding agents
 
@@ -40,7 +40,7 @@ async function printTasks(): Promise<void> {
     console.log('No pending visual tasks.')
     return
   }
-  console.log(JSON.stringify(tasks, null, 2))
+  console.log(JSON.stringify(await withStylingHints(process.cwd(), tasks), null, 2))
 }
 
 async function main(): Promise<void> {

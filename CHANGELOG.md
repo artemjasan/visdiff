@@ -11,6 +11,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - **Copy prompt** button in the overlay copies the pending batch as plain text for any agent.
 - Tasks carry `schemaVersion` (currently `1`); older tasks without it are read as version 1.
 - Tailwind CSS detection adds styling guidance to `visdiff instructions` and `visdiff_pending_tasks`.
+- Tasks include `element.classes`, and in Tailwind projects `visdiff tasks` and the MCP tool add per-edit `tailwind` class suggestions (`suggestion`, `exact`, `alternative`, `replaces`).
 - Tests for client model logic, status output, and styling detection.
 - [Roadmap](docs/ROADMAP.md).
 

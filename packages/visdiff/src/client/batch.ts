@@ -20,6 +20,11 @@ interface ChangeBatchActions {
   notify(message: string): void
 }
 
+function classTokens(target: EditableElement): { classes?: string[] } {
+  const classes = (target.getAttribute('class') ?? '').split(/\s+/).filter(Boolean).slice(0, 64)
+  return classes.length > 0 ? { classes } : {}
+}
+
 export class ChangeBatch {
   private readonly items: StagedChange[] = []
 
@@ -48,6 +53,7 @@ export class ChangeBatch {
       selector: cssPath(target),
       text: (target.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 80),
       source,
+      ...classTokens(target),
     }
     let staged = this.items.find((change) => sameElement(change.element, element))
 

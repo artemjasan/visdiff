@@ -28,6 +28,8 @@ export function buildPrompt(changes: VisdiffTaskChange[], context: PromptContext
   changes.forEach((change, index) => {
     lines.push('', `${index + 1}. <${change.element.tag}> ${describeLocation(change)}`)
     if (change.element.text.length > 0) lines.push(`   text: "${change.element.text}"`)
+    const classes = change.element.classes
+    if (classes !== undefined && classes.length > 0) lines.push(`   classes: ${classes.join(' ')}`)
     for (const edit of change.edits) {
       const note = edit.note === undefined ? '' : ` — ${edit.note}`
       lines.push(`   - ${edit.property}: ${edit.from} → ${edit.to}${note}`)
