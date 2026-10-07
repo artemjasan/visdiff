@@ -1,12 +1,12 @@
 ---
 layout: home
-title: Visual edits as structured task JSON
+title: Visual feedback for coding agents
 titleTemplate: false
 
 hero:
-  name: Show your agent
-  text: what to change.
-  tagline: Capture intent, source, and edits; let your coding agent implement the change.
+  name: Give your coding agent
+  text: clear UI feedback.
+  tagline: Select an element, describe the change, and give your agent the visual edit and source context to implement it.
   actions:
     - theme: brand
       text: Add Visdiff

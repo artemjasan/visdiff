@@ -10,6 +10,7 @@
   --vp-font-family-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --vp-home-hero-name-color: #323982;
   --vp-home-hero-name-background: transparent;
+  --vp-home-hero-name-glow: rgba(50, 57, 130, 0.14);
 }
 
 .dark {
@@ -21,6 +22,7 @@
   --vp-c-bg-soft: #22232f;
   --vp-c-divider: #31313c;
   --vp-home-hero-name-color: #c9ccff;
+  --vp-home-hero-name-glow: rgba(185, 190, 255, 0.2);
   --vp-button-brand-text: #181a38;
   --vp-button-brand-hover-text: #181a38;
   --vp-button-brand-active-text: #181a38;
@@ -33,6 +35,10 @@
 .VPHomeHero .name,
 .VPHomeHero .text {
   letter-spacing: -0.045em;
+}
+
+.VPHomeHero .name {
+  text-shadow: 0 0 22px var(--vp-home-hero-name-glow);
 }
 
 .VPHomeHero .tagline {
@@ -50,7 +56,9 @@
 }
 
 .task-preview {
-  width: min(100%, 510px);
+  width: min(100%, 600px);
+  box-sizing: border-box;
+  margin-left: auto;
   overflow: hidden;
   border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
@@ -134,6 +142,10 @@
   letter-spacing: -0.025em;
 }
 
+.VPHome .vp-doc h2 {
+  border-top: 0;
+}
+
 .vp-doc table {
   display: table;
   width: 100%;
@@ -166,6 +178,12 @@
   .task-preview__code {
     max-height: 330px;
     font-size: 9.5px;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHomeHero .image-container {
+    transform: none;
   }
 }
 

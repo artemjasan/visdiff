@@ -1,6 +1,6 @@
 # visdiff
 
-**Capture a browser edit. Hand your agent the task JSON.**
+**Give your coding agent visual feedback on your app.**
 
 Visdiff connects a running web page to the source code behind it. Adjust an element in the browser, capture the visual change, and give the resulting task to an agent through its CLI or MCP client.
 
