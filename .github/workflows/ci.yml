@@ -14,13 +14,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate (Node ${{ matrix.node-version }})
+  unit-tests:
+    name: Unit tests (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node-version: ['20.19.0', '22.12.0', '24']
+        node-version: ['22.12.0', '24']
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -30,20 +30,42 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm test --workspace packages/visdiff
+
+  validate:
+    name: Validate (Node 24)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
       - run: npm run lint
-        if: matrix.node-version == '20.19.0'
       - run: npm run typecheck
       - run: npm run build --workspace packages/visdiff
-      - run: npx playwright install --with-deps chromium
-        if: matrix.node-version == '20.19.0'
-      - run: npm run test:e2e
-        if: matrix.node-version == '20.19.0'
       - run: npm run docs:build
+
+  e2e:
+    name: End-to-end tests
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run test:e2e
 
   tag-build:
     name: Tag successful main build
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    needs: validate
+    needs: [unit-tests, validate, e2e]
     runs-on: ubuntu-latest
     permissions:
       contents: write

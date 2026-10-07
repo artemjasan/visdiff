@@ -1,6 +1,6 @@
 # Getting started
 
-**Requirements:** Node.js `^20.19.0 || >=22.12.0`.
+**Requirements:** Node.js `>=22.12.0`.
 
 ## 1. Install
 
