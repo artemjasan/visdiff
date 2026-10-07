@@ -16,9 +16,32 @@ export type HintedTask = Omit<VisdiffTask, 'changes'> & {
   changes: Array<Omit<VisdiffTask['changes'][number], 'edits'> & { edits: HintedEdit[] }>
 }
 
+/** Named spacing tokens from the project's theme, in px. */
+export type TokenMap = ReadonlyArray<readonly [string, number]>
+
+export interface TailwindTheme {
+  /** Tokens usable by `gap-*`, `w-*` and `h-*`. */
+  spacing: TokenMap
+  width: TokenMap
+  height: TokenMap
+  /** True when the project removed Tailwind's default spacing scale. */
+  replaceDefaults: boolean
+  /** v4 `--spacing` base unit in px (default 4). */
+  unit: number
+}
+
 export interface TailwindOptions {
   /** Tailwind v4 accepts any spacing multiple (`w-31`); v3 only the default scale. */
   v4?: boolean
+  theme?: TailwindTheme
+}
+
+interface Scale {
+  v4: boolean
+  generate: boolean
+  unit: number
+  defaults: TokenMap
+  tokens: TokenMap
 }
 
 // Default spacing scale in px (1 unit = 0.25rem = 4px at a 16px root).
@@ -75,12 +98,28 @@ function parsePx(value: string): number | null {
   return match?.[1] === undefined ? null : Number(match[1])
 }
 
-function spacing(px: number, v4: boolean): { token: string; exact: boolean } | null {
+function buildScale(options: TailwindOptions, group: 'spacing' | 'width' | 'height'): Scale {
+  const theme = options.theme
+  const v4 = options.v4 === true
+  const unit = theme?.unit ?? 4
+  const defaults = theme?.replaceDefaults === true ? [] : v4 ? [] : SCALE
+  const tokens = theme === undefined ? [] : [...(group === 'spacing' ? [] : theme.spacing), ...theme[group]]
+  return { v4, generate: v4 && theme?.replaceDefaults !== true, unit, defaults, tokens }
+}
+
+function spacing(px: number, scale: Scale): { token: string; exact: boolean } | null {
   if (px < 0) return null
-  const exact = SCALE.find(([, size]) => size === px)
-  if (exact !== undefined) return { token: exact[0], exact: true }
-  if (v4 && px % 4 === 0) return { token: String(px / 4), exact: true }
-  const nearest = SCALE.reduce((best, step) => Math.abs(step[1] - px) < Math.abs(best[1] - px) ? step : best)
+  const named = scale.tokens.find(([, size]) => size === px) ?? scale.defaults.find(([, size]) => size === px)
+  if (named !== undefined) return { token: named[0], exact: true }
+  if (scale.generate) {
+    const steps = px / scale.unit
+    if (Number.isInteger(steps * 2)) return { token: String(steps), exact: true }
+  }
+  const pool = [...scale.defaults, ...scale.tokens]
+  const generated: Array<readonly [string, number]> = scale.generate ? [[String(Math.round(px / scale.unit)), Math.round(px / scale.unit) * scale.unit]] : []
+  const candidates = [...pool, ...generated]
+  if (candidates.length === 0) return null
+  const nearest = candidates.reduce((best, step) => Math.abs(step[1] - px) < Math.abs(best[1] - px) ? step : best)
   return { token: nearest[0], exact: false }
 }
 
@@ -88,13 +127,13 @@ function arbitrary(value: string): string {
   return `[${value.trim().replace(/\s+/g, '_')}]`
 }
 
-function sizeHint(prefix: 'w' | 'h', value: string, v4: boolean): Omit<TailwindHint, 'replaces'> | null {
+function sizeHint(prefix: 'w' | 'h', value: string, scale: Scale): Omit<TailwindHint, 'replaces'> | null {
   const trimmed = value.trim()
   if (trimmed === '100%') return { suggestion: `${prefix}-full`, exact: true }
   if (trimmed === 'auto') return { suggestion: `${prefix}-auto`, exact: true }
   const px = parsePx(trimmed)
   if (px === null) return trimmed === '' ? null : { suggestion: `${prefix}-${arbitrary(trimmed)}`, exact: true }
-  const step = spacing(px, v4)
+  const step = spacing(px, scale)
   if (step === null) return null
   const alt = `${prefix}-${arbitrary(`${px}px`)}`
   return step.exact
@@ -102,11 +141,11 @@ function sizeHint(prefix: 'w' | 'h', value: string, v4: boolean): Omit<TailwindH
     : { suggestion: `${prefix}-${step.token}`, exact: false, alternative: alt }
 }
 
-function gapHint(value: string, v4: boolean): Omit<TailwindHint, 'replaces'> | null {
+function gapHint(value: string, scale: Scale): Omit<TailwindHint, 'replaces'> | null {
   const parts = value.trim().split(/\s+/).filter(Boolean)
   const toToken = (part: string) => part === 'normal' ? { token: '0', exact: false } : (() => {
     const px = parsePx(part)
-    return px === null ? null : spacing(px, v4)
+    return px === null ? null : spacing(px, scale)
   })()
   const tokens = parts.map(toToken)
   if (tokens.length === 0 || tokens.some((token) => token === null)) return null
@@ -135,15 +174,14 @@ function gridColumnsHint(value: string): Omit<TailwindHint, 'replaces'> | null {
 
 /** Suggest Tailwind utilities for one edit; null when the edit has no sensible mapping (e.g. move). */
 export function suggestTailwind(edit: VisdiffEdit, classes: string[] = [], options: TailwindOptions = {}): TailwindHint | null {
-  const v4 = options.v4 === true
   let base: Omit<TailwindHint, 'replaces'> | null = null
   const keywords = KEYWORDS[edit.property]
   if (keywords !== undefined) {
     const keyword = keywords[edit.to.trim()]
     if (keyword !== undefined) base = { suggestion: keyword.cls, exact: keyword.exact ?? true }
-  } else if (edit.property === 'width') base = sizeHint('w', edit.to, v4)
-  else if (edit.property === 'height') base = sizeHint('h', edit.to, v4)
-  else if (edit.property === 'gap') base = gapHint(edit.to, v4)
+  } else if (edit.property === 'width') base = sizeHint('w', edit.to, buildScale(options, 'width'))
+  else if (edit.property === 'height') base = sizeHint('h', edit.to, buildScale(options, 'height'))
+  else if (edit.property === 'gap') base = gapHint(edit.to, buildScale(options, 'spacing'))
   else if (edit.property === 'grid-template-columns') base = gridColumnsHint(edit.to)
   if (base === null) return null
 

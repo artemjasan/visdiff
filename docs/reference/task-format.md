@@ -50,4 +50,9 @@ In projects that use Tailwind CSS (detected from `package.json` or `tailwind.con
 | `alternative` | Arbitrary-value class (for example `w-[123px]`) when `exact` is `false`. |
 | `replaces` | Existing unprefixed classes on the element that the suggestion should replace. |
 
-Hints cover layout controls, `gap`, `width`, `height` and grid columns; `move` edits get none. They use Tailwind's default spacing scale (v4 also accepts any multiple of 4 px), so prefer the project's own theme tokens when they differ.
+Hints cover layout controls, `gap`, `width`, `height` and grid columns; `move` edits get none. They use Tailwind's default spacing scale (v4 also accepts any multiple of the `--spacing` unit) and the project's theme when it can be read:
+
+- **v3:** static `theme.spacing`, `theme.width`, `theme.height` and their `extend` values from a JavaScript `tailwind.config.*` (`px` and `rem` only). TypeScript configs load only on Node versions that can import `.ts`; computed (function) values are ignored. Visdiff imports the config file to read it.
+- **v4:** `--spacing`, `--spacing-*`, `--width-*` and `--height-*` from `@theme` blocks in the project's CSS files (up to four directories deep, excluding `node_modules`).
+
+Verify hints against the project's theme; unreadable configs fall back to the defaults.

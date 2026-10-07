@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { annotateTasks } from './tailwind'
+import { annotateTasks, type TailwindTheme } from './tailwind'
+import { loadTailwindTheme } from './tailwind-theme'
 import type { VisdiffTask } from './types'
 
 const TAILWIND_CONFIG = /^tailwind\.config\.(?:js|cjs|mjs|ts|cts|mts)$/
@@ -8,6 +9,7 @@ const TAILWIND_CONFIG = /^tailwind\.config\.(?:js|cjs|mjs|ts|cts|mts)$/
 export interface TailwindInfo {
   /** True for Tailwind v4 (dependency range >= 4 or the `@tailwindcss/*` packages). */
   v4: boolean
+  theme: TailwindTheme
 }
 
 async function readDependencies(root: string): Promise<Record<string, string>> {
@@ -41,7 +43,8 @@ export async function detectTailwind(root: string): Promise<TailwindInfo | null>
   const scoped = Object.keys(deps).some((name) => name.startsWith('@tailwindcss/'))
   if (range === undefined && !scoped && !hasConfig) return null
   const major = range === undefined ? undefined : /\d+/.exec(range)?.[0]
-  return { v4: scoped || (major !== undefined && Number(major) >= 4) }
+  const v4 = scoped || (major !== undefined && Number(major) >= 4)
+  return { v4, theme: await loadTailwindTheme(root, v4) }
 }
 
 /** Project-specific guidance appended to the agent workflow; empty when nothing is detected. */
@@ -51,11 +54,11 @@ export async function detectStylingHint(root: string): Promise<string> {
     + '(and its theme tokens) instead of inline styles or new custom CSS. '
     + 'Edits may carry a "tailwind" hint: "suggestion" is the class(es) for the "to" value, "replaces" lists existing classes it should replace, '
     + 'and exact=false means the value was rounded to the default scale (see "alternative" for an arbitrary value). '
-    + 'Treat hints as starting points: prefer the project\'s own theme tokens and verify the result. Remember element.classes shows the current classes.'
+    + 'Treat hints as starting points: verify the result against the project\'s theme. Remember element.classes shows the current classes.'
 }
 
 /** Tasks annotated with Tailwind hints when the project uses Tailwind; otherwise returned unchanged. */
 export async function withStylingHints(root: string, tasks: VisdiffTask[]): Promise<unknown[]> {
   const info = await detectTailwind(root)
-  return info === null ? tasks : annotateTasks(tasks, { v4: info.v4 })
+  return info === null ? tasks : annotateTasks(tasks, { v4: info.v4, theme: info.theme })
 }
