@@ -50,7 +50,9 @@
 }
 
 .task-preview {
-  width: min(100%, 510px);
+  width: min(100%, 600px);
+  box-sizing: border-box;
+  margin-left: auto;
   overflow: hidden;
   border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
@@ -134,6 +136,10 @@
   letter-spacing: -0.025em;
 }
 
+.VPHome .vp-doc h2 {
+  border-top: 0;
+}
+
 .vp-doc table {
   display: table;
   width: 100%;
@@ -166,6 +172,12 @@
   .task-preview__code {
     max-height: 330px;
     font-size: 9.5px;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHomeHero .image-container {
+    transform: none;
   }
 }
 
