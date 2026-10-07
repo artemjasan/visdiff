@@ -6,6 +6,7 @@ The browser submits a batch to the local development endpoint. The endpoint vali
 
 | Field | Meaning |
 |---|---|
+| `schemaVersion` | Task format version (currently `1`); absent in older tasks, which are read as version 1. |
 | `id` | Queue identifier used to clear this task. |
 | `receivedAt` | ISO timestamp when the endpoint accepted it. |
 | `url` | Page URL where the edit was captured. |

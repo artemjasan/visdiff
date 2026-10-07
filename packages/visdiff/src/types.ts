@@ -66,7 +66,11 @@ export const VisdiffTaskPayloadSchema = z.object({
 })
 
 /** What reaches the queue file and the agent. */
+export const TASK_SCHEMA_VERSION = 1
+
 export const VisdiffTaskSchema = VisdiffTaskPayloadSchema.extend({
+  /** Absent in tasks queued before versioning; those are treated as version 1. */
+  schemaVersion: z.number().int().positive().default(TASK_SCHEMA_VERSION),
   id: z.string().min(1),
   receivedAt: z.iso.datetime(),
 })

@@ -2,6 +2,8 @@ import { runMcpServer } from './mcp'
 import { startStandaloneServer } from './server-core'
 import { clearPending, readPending, removePending } from './queue'
 import { AGENT_WORKFLOW } from './agent-guidance'
+import { formatStatus } from './status'
+import { detectStylingHint } from './styling'
 
 const USAGE = `visdiff — browser visual edits → JSON tasks for coding agents
 
@@ -9,8 +11,9 @@ Usage: visdiff <command>
 
   mcp            Run the MCP stdio server (tools: visdiff_pending_tasks, visdiff_clear_tasks)
   tasks          Print visual tasks (.visdiff/tasks.json)
+  status         Show a one-line summary of each pending task
   instructions   Print the recommended coding-agent workflow
-  clear [ids...] Remove only the listed task IDs; with no IDs, clear the entire queue
+  clear [ids...] Remove only the listed task IDs; with no IDs (or --all), clear the entire queue
   serve [opts]   Start a standalone endpoint server (default port 9090) for non-plugin dev setups
   help           Show this help
 
@@ -54,15 +57,25 @@ async function main(): Promise<void> {
     case 'tasks':
       await printTasks()
       return
-    case 'instructions':
-      console.log(AGENT_WORKFLOW)
+    case 'status':
+      console.log(formatStatus(await readPending(process.cwd())))
       return
+    case 'instructions': {
+      const hint = await detectStylingHint(process.cwd())
+      console.log(hint === '' ? AGENT_WORKFLOW : `${AGENT_WORKFLOW}\n\n${hint}`)
+      return
+    }
     case 'clear': {
-      const ids = argv.slice(1).map((id) => id.trim())
+      const args = argv.slice(1)
+      const all = args.includes('--all')
+      const ids = args.filter((arg) => arg !== '--all').map((id) => id.trim())
+      if (all && ids.length > 0) {
+        throw new Error('Use either --all or task IDs, not both.')
+      }
       if (ids.some((id) => id.length === 0)) {
         throw new Error('Task IDs must not be empty.')
       }
-      const cleared = ids.length > 0
+      const cleared = !all && ids.length > 0
         ? await removePending(process.cwd(), ids)
         : await clearPending(process.cwd())
       console.log(`[visdiff] cleared ${cleared} pending task(s)`)

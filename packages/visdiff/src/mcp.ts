@@ -3,6 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { queueFile, readPending, removePending } from './queue'
 import type { VisdiffTask } from './types'
+import { detectStylingHint } from './styling'
 import { AGENT_WORKFLOW, TASK_FORMAT_GUIDE } from './agent-guidance'
 
 function textContent(body: unknown): { content: [{ type: 'text'; text: string }] } {
@@ -48,7 +49,8 @@ export async function runMcpServer(root: string): Promise<void> {
     async () => {
       const tasks: VisdiffTask[] = await readPending(root)
       if (tasks.length === 0) return textContent({ message: 'No pending visual tasks.' })
-      return textContent({ queueFile: queueFile(root), tasks })
+      const stylingHint = await detectStylingHint(root)
+      return textContent({ queueFile: queueFile(root), tasks, ...(stylingHint === '' ? {} : { stylingHint }) })
     },
   )
 

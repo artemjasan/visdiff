@@ -29,6 +29,7 @@ export interface OverlayElements {
   commentSaveBtn: HTMLButtonElement
   commentCancelBtn: HTMLButtonElement
   applyBatchBtn: HTMLButtonElement
+  copyBatchBtn: HTMLButtonElement
   handleE: HTMLDivElement
   handleS: HTMLDivElement
   handleSE: HTMLDivElement
@@ -53,6 +54,7 @@ export interface OverlayActions {
   hideBatchPanel(): void
   showBatchPanel(): void
   apply(): void
+  copyPrompt(): void
   clear(): void
   applyLayout(property: LayoutProp, value: string): void
 }
@@ -164,7 +166,10 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   const clearBatchBtn = document.createElement('button')
   clearBatchBtn.textContent = 'Clear'
   clearBatchBtn.addEventListener('click', () => actions.clear())
-  batchActions.append(applyBatchBtn, clearBatchBtn)
+  const copyBatchBtn = document.createElement('button')
+  copyBatchBtn.textContent = 'Copy prompt'
+  copyBatchBtn.addEventListener('click', () => actions.copyPrompt())
+  batchActions.append(applyBatchBtn, copyBatchBtn, clearBatchBtn)
   const batchNoteField = document.createElement('textarea')
   batchNoteField.setAttribute('data-vd-note', '')
   batchNoteField.setAttribute('data-vd-ui', '')
@@ -302,6 +307,7 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
     commentSaveBtn,
     commentCancelBtn,
     applyBatchBtn,
+    copyBatchBtn,
     handleE,
     handleS,
     handleSE,
@@ -377,6 +383,7 @@ export function renderPendingChanges(
   ui.batchRestoreBtn.textContent = `Show changes (${count})`
   ui.batchRestoreBtn.style.display = count > 0 && state.hidden ? 'block' : 'none'
   ui.applyBatchBtn.disabled = count === 0 || state.applying
+  ui.copyBatchBtn.disabled = count === 0 || state.applying
   const countLabel = count === 0 ? '' : ` · ${count}`
   ui.btn.textContent = `visdiff${countLabel}${state.running ? ' ✕' : ''}`
 }

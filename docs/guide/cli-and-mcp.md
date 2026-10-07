@@ -15,10 +15,11 @@ npx -y visdiff clear <task-id> [task-id ...]
 | Command | Purpose |
 |---|---|
 | `tasks` | Print all pending task JSON. |
+| `status` | Print a one-line summary per pending task. |
 | `instructions` | Print setup guidance, the agent workflow, and the task-field reading guide. |
 | `clear <task-id...>` | Remove only the listed task IDs. |
 
-Bare `clear` removes the entire queue. Use it only when that is intended.
+`clear --all` (or bare `clear`) removes the entire queue. Use it only when that is intended.
 
 ## MCP
 

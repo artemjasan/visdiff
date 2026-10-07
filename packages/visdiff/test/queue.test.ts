@@ -8,6 +8,7 @@ import type { VisdiffTask } from '../src/types.ts'
 
 function task(id: string): VisdiffTask {
   return {
+    schemaVersion: 1,
     id,
     receivedAt: '2026-10-07T16:00:00.000Z',
     note: undefined,

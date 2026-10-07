@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { VisdiffTaskPayloadSchema, type VisdiffTask, type VisdiffTaskPayload } from './types'
+import { TASK_SCHEMA_VERSION, VisdiffTaskPayloadSchema, type VisdiffTask, type VisdiffTaskPayload } from './types'
 import { appendTask, clearPending, newTaskId, queueFile, readPending } from './queue'
 
 export const VISDIFF_BASE = '/__visdiff'
@@ -156,7 +156,7 @@ export function createVisdiffHandler(options: CreateHandlerOptions): VisdiffRequ
         res.end(JSON.stringify({ error: 'invalid task payload' }))
         return true
       }
-      const task: VisdiffTask = { ...payload, id: newTaskId(), receivedAt: new Date().toISOString() }
+      const task: VisdiffTask = { ...payload, schemaVersion: TASK_SCHEMA_VERSION, id: newTaskId(), receivedAt: new Date().toISOString() }
       await appendTask(options.root, task)
       console.log(summarizeTask(task, options.root))
       res.writeHead(201, { 'content-type': 'application/json' })

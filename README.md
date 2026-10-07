@@ -55,7 +55,7 @@ Start your development server, open the app, and click **visdiff** to make and a
 3. Shift-click additional elements to create a multi-selection. If they share a parent, open **Layout** to preview Flex/Grid and alignment changes on that shared container.
 4. Add an optional task note or per-change comment, then click **Apply** to enqueue the task.
 
-Edits collect in the change panel until applied. **Reset** restores the current preview; **Esc** or **✕** cancels the selection; **Clear** discards the unsent batch. Applied preview styles remain until the app's code or HMR replaces them.
+Click **Copy prompt** instead of **Apply** to paste the task into any agent without the CLI or MCP. Edits collect in the change panel until applied. **Reset** restores the current preview; **Esc** or **✕** cancels the selection; **Clear** discards the unsent batch. Applied preview styles remain until the app's code or HMR replaces them.
 
 ## Connect an agent
 

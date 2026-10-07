@@ -15,6 +15,7 @@ import {
 import { LayoutEditor } from './client/layout'
 import { ChangeBatch } from './client/batch'
 import { BatchPanelController } from './client/batch-panel'
+import { buildPrompt } from './client/prompt'
 import {
   positionBar,
   positionSelection as updateSelectionPosition,
@@ -381,6 +382,29 @@ function showBatchPanel(): void {
   batchPanel.show()
 }
 
+async function copyPrompt(): Promise<void> {
+  if (applying) return
+  if (hasEdits() || hasLayoutEdits()) stageCurrentChange()
+  const changes = changeBatch.taskChanges()
+  if (changes.length === 0) {
+    toast('No pending visual changes', false)
+    return
+  }
+  const note = overlay?.batchNoteField.value.trim() ?? ''
+  const text = buildPrompt(changes, {
+    url: location.href,
+    viewport: { width: window.innerWidth, height: window.innerHeight },
+    ...(note.length > 0 ? { note } : {}),
+  })
+  try {
+    await navigator.clipboard.writeText(text)
+    toast('Prompt copied — changes remain pending', false)
+  } catch (err) {
+    console.error('[visdiff] copy failed', err)
+    toast('Copy failed — clipboard unavailable', true)
+  }
+}
+
 async function save(): Promise<void> {
   if (applying) return
   if (hasEdits() || hasLayoutEdits()) stageCurrentChange()
@@ -530,6 +554,7 @@ function mountUI(): void {
     hideBatchPanel,
     showBatchPanel,
     apply: () => { void save() },
+    copyPrompt: () => { void copyPrompt() },
     clear: discardPendingChanges,
     applyLayout,
   })

@@ -49,7 +49,7 @@ npx -y visdiff clear <task-id> [task-id ...]
 npx -y visdiff mcp
 ```
 
-Passing IDs to `clear` removes only those tasks. Bare `visdiff clear` intentionally clears the entire queue.
+Passing IDs to `clear` removes only those tasks. `visdiff clear --all` (or bare `visdiff clear`) intentionally clears the entire queue. `visdiff status` summarizes pending tasks.
 
 ## MCP
 
