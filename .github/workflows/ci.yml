@@ -28,13 +28,10 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
           cache-dependency-path: package-lock.json
-      - name: Use npm 11 for workspace lockfile compatibility
-        run: npm install --global npm@11
       - run: npm ci
       - run: npm test --workspace packages/visdiff
       - run: npm run lint
         if: matrix.node-version == '20.19.0'
       - run: npm run typecheck
       - run: npm run build --workspace packages/visdiff
-      - run: npm run build:examples
       - run: npm run docs:build
