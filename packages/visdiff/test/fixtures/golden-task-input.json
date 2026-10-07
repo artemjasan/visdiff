@@ -1,0 +1,42 @@
+[
+  {
+    "schemaVersion": 1,
+    "id": "golden-task-1",
+    "receivedAt": "2026-10-07T16:00:00.000Z",
+    "url": "http://localhost:5173/projects",
+    "viewport": {
+      "width": 900,
+      "height": 600
+    },
+    "note": "Keep cards aligned",
+    "changes": [
+      {
+        "element": {
+          "tag": "section",
+          "selector": "main > section:nth-of-type(1)",
+          "text": "A B",
+          "source": {
+            "file": "src/App.vue",
+            "line": 12,
+            "column": 3,
+            "component": "App"
+          },
+          "classes": [
+            "grid",
+            "gap-2",
+            "md:gap-3"
+          ]
+        },
+        "edits": [
+          {
+            "property": "gap",
+            "from": "8px",
+            "to": "16px",
+            "kind": "style",
+            "note": "Use spacing token"
+          }
+        ]
+      }
+    ]
+  }
+]

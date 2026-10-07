@@ -1,6 +1,16 @@
 import { expect, test } from '@playwright/test'
 
-test('selects a React element, stages a keyboard move, and saves its source-aware task', async ({ page }) => {
+const examples = {
+  react: { heading: 'Spring launch', navigation: 'Features', sourceFile: 'App.tsx' },
+  vue: { heading: 'Summer collection', navigation: 'Projects', sourceFile: 'App.vue' },
+  svelte: { heading: 'Summer collection', navigation: 'Projects', sourceFile: 'App.svelte' },
+} as const
+
+test('selects an element, stages a keyboard move, and saves its source-aware task', async ({ page }, testInfo) => {
+  const example = examples[testInfo.project.name as keyof typeof examples]
+  expect(example, `unknown E2E project "${testInfo.project.name}"`).toBeDefined()
+  if (example === undefined) return
+
   let savedPayload: unknown
   const pageErrors: string[] = []
 
@@ -15,11 +25,11 @@ test('selects a React element, stages a keyboard move, and saves its source-awar
   })
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Spring launch' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: example.heading })).toBeVisible()
 
   await page.getByRole('button', { name: 'visdiff' }).click()
-  await page.getByRole('heading', { name: 'Spring launch' }).click()
-  await page.getByRole('link', { name: 'Features' }).focus()
+  await page.getByRole('heading', { name: example.heading }).click()
+  await page.getByRole('link', { name: example.navigation }).focus()
   await page.keyboard.press('ArrowRight')
 
   const stagedChange = page.locator('[data-vd-change]')
@@ -30,12 +40,11 @@ test('selects a React element, stages a keyboard move, and saves its source-awar
   await expect(page.locator('[data-vd-toast]')).toContainText('Batch queued with 1 element')
 
   expect(savedPayload).toMatchObject({
-    url: 'http://127.0.0.1:4173/',
     changes: [{
       element: {
         tag: 'h2',
-        text: 'Spring launch',
-        source: { file: expect.stringContaining('App.tsx') },
+        text: example.heading,
+        source: { file: expect.stringContaining(example.sourceFile) },
       },
       edits: [{
         property: 'transform',
@@ -45,5 +54,6 @@ test('selects a React element, stages a keyboard move, and saves its source-awar
       }],
     }],
   })
+  expect(savedPayload).toMatchObject({ url: new URL(page.url()).origin + '/' })
   expect(pageErrors).toEqual([])
 })

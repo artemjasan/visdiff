@@ -14,7 +14,16 @@ npm run build
 npm run docs:build
 ```
 
-`npm run check` runs ESLint, TypeScript, and package tests. CI runs checks and package/docs builds on supported Node versions.
+`npm run check` runs ESLint, TypeScript, package tests, task JSON golden tests for the queue/CLI/MCP, and HTTP endpoint integration tests. CI runs checks and package/docs builds on supported Node versions.
+
+The browser tests exercise selection, keyboard editing, framework source capture, and saving against the React, Vue, and Svelte examples:
+
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
+
+The command builds the package and starts an isolated Vite server for each example. CI runs browser tests on Node 20.
 
 After all checks pass on `main`, CI creates an annotated `build-<run>-<attempt>` tag. These build tags do not publish the npm package; releases use separate `v*` tags.
 
@@ -27,6 +36,7 @@ After all checks pass on `main`, CI creates an annotated `build-<run>-<attempt>`
 - `packages/visdiff/src/cli.ts` and `mcp.ts` — CLI and MCP agent interfaces.
 - `packages/visdiff/src/queue.ts` — task validation and queue operations.
 - `packages/visdiff/test/` — task contract and queue tests.
+- `e2e/` — browser tests against the Vite React, Vue, and Svelte examples.
 - `docs/` — VitePress documentation site.
 
 ## Documentation site
