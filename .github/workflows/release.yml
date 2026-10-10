@@ -35,7 +35,9 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Pack release archive
-        run: npm pack ./packages/visdiff --pack-destination ./release
+        run: |
+          mkdir -p release
+          npm pack ./packages/visdiff --pack-destination ./release
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
