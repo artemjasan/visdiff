@@ -1,9 +1,17 @@
 {
   "name": "visdiff",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Visual diff bridge: browser overlay edits → JSON tasks for coding agents (MCP). unplugin-based, TypeScript-first, npx-runnable.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/artemjasan/visdiff.git"
+  },
+  "homepage": "https://github.com/artemjasan/visdiff#readme",
+  "bugs": {
+    "url": "https://github.com/artemjasan/visdiff/issues"
+  },
   "bin": {
     "visdiff": "dist/cli.js"
   },

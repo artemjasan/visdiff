@@ -32,6 +32,8 @@ jobs:
           test "$GITHUB_REF_NAME" = "v$package_version"
       - name: Publish to npm
         run: npm publish --workspace packages/visdiff --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Pack release archive
         run: npm pack ./packages/visdiff --pack-destination ./release
       - name: Create GitHub Release

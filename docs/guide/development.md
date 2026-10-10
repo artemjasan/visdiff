@@ -27,6 +27,24 @@ The command builds the package and starts an isolated Vite server for each examp
 
 After all checks pass on `main`, CI creates an annotated `build-<run>-<attempt>` tag. These build tags do not publish the npm package; releases use separate `v*` tags.
 
+## Releases
+
+Releases are tag-driven. Bump `version` in `packages/visdiff/package.json`, move the CHANGELOG `Unreleased` entries into a `## <version>` section, commit, then push a matching tag:
+
+```bash
+git tag v<version>
+git push origin v<version>
+```
+
+`.github/workflows/release.yml` verifies the tag equals `v` + package version, runs the test suite and typecheck, builds, publishes with `npm publish --provenance`, packs the tarball, and creates a GitHub Release with it.
+
+Auth: the repository needs a one-time `NPM_TOKEN` secret before the workflow can publish:
+
+1. On npmjs.com → Account settings → Access tokens, create a token with publish permission for the package (grant permission for new packages the first time, since `visdiff` is not yet on the registry).
+2. Add it to the repository: `gh secret set NPM_TOKEN` (or repository Settings → Secrets and variables → Actions).
+
+No trusted-publisher configuration is required; the publish step passes the token via `NODE_AUTH_TOKEN` and attaches provenance, which needs the package `repository` field to match this GitHub repo.
+
 ## Main areas
 
 - `packages/visdiff/src/client/` — browser selection, element editing, Layout tools, batch state, and geometry.

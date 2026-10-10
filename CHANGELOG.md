@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.2.0]
+
 ### Added
 
 - `visdiff status` prints a one-line summary of each pending task.
@@ -19,6 +21,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Changed
 
 - `packages/visdiff/dist/` is no longer tracked in git; it is still included in the published package.
+- Package metadata includes `repository`, `homepage`, and `bugs`, so publishes can carry npm provenance.
 
 ## [0.1.0]
 
