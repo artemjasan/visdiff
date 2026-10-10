@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Fixed
 
 - Closing a selection with its ✕ button or Escape stages pending edits instead of discarding them.
+- Large containers are skipped during selection by default and can be selected with Alt-click.
 
 ## [0.2.0]
 

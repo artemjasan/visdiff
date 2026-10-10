@@ -32,6 +32,8 @@ Start or restart the dev server, open the app, then select and edit an element i
 
 While the overlay is active, app interactions such as link navigation and form submission are suppressed so inspection does not trigger page actions.
 
+Very large containers that cover most of the viewport are skipped by default; hold **Alt** while clicking to select a large container instead.
+
 Visdiff queues task data; it does not edit application source.
 
 ## 4. Connect your agent

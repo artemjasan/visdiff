@@ -24,7 +24,8 @@ export default defineConfig({
     },
     {
       name: 'react-tailwind',
-      testMatch: ['framework-examples.spec.ts', 'tailwind-hints.spec.ts'],
+      testMatch: ['framework-examples.spec.ts', 'tailwind-hints.spec.ts', 'selection-size.spec.ts'],
+      workers: 1,
       use: { ...devices['Desktop Chrome'], baseURL: 'http://127.0.0.1:4176' },
     },
   ],

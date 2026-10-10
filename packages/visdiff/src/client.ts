@@ -48,6 +48,32 @@ function isSystemUiElement(target: Element): boolean {
   return target.closest('[data-vd-ui]') !== null
 }
 
+const LARGE_TARGET_AREA_RATIO = 0.65
+
+function isLargeTarget(target: Element): boolean {
+  const rect = target.getBoundingClientRect()
+  const viewportArea = window.innerWidth * window.innerHeight
+  const targetArea = Math.max(0, rect.width) * Math.max(0, rect.height)
+  return targetArea >= viewportArea * LARGE_TARGET_AREA_RATIO
+}
+
+function pickTarget(target: Element, includeLarge: boolean): HTMLElement | SVGElement | null {
+  let nearest: HTMLElement | SVGElement | null = null
+  let large: HTMLElement | SVGElement | null = null
+  for (let current: Element | null = target; current !== null; current = current.parentElement) {
+    if (!(current instanceof HTMLElement) && !(current instanceof SVGElement)) continue
+    if (isSystemUiElement(current)) return null
+    nearest ??= current
+    if (isLargeTarget(current)) {
+      large ??= current
+      if (includeLarge) return current
+    } else if (!includeLarge) {
+      return current
+    }
+  }
+  return includeLarge ? (large ?? nearest) : null
+}
+
 /* ------------------------------------------------------------------ endpoint */
 function computeEndpoint(): string {
   const script = document.currentScript as HTMLScriptElement | null
@@ -457,8 +483,13 @@ async function save(): Promise<void> {
 /* -------------------------------------------------------------- interaction */
 function onHover(ev: MouseEvent): void {
   if (!running) return
-  const target = ev.target
-  if (!(target instanceof Element) || isSystemUiElement(target) || !document.contains(target)) {
+  const rawTarget = ev.target
+  if (!(rawTarget instanceof Element) || !document.contains(rawTarget)) {
+    hoverBlur()
+    return
+  }
+  const target = pickTarget(rawTarget, ev.altKey)
+  if (target === null) {
     hoverBlur()
     return
   }
@@ -481,11 +512,15 @@ function onHover(ev: MouseEvent): void {
 
 function onPointerDown(ev: PointerEvent): void {
   if (!running || applying) return
-  const target = ev.target
-  if (!(target instanceof HTMLElement) && !(target instanceof SVGElement)) return
-  if (isSystemUiElement(target)) return
+  const rawTarget = ev.target
+  if (!(rawTarget instanceof Element) || isSystemUiElement(rawTarget)) return
   ev.preventDefault()
   ev.stopPropagation()
+  const target = pickTarget(rawTarget, ev.altKey)
+  if (target === null) {
+    if (!ev.altKey) toast('Large container skipped — hold Alt while clicking to select it', false)
+    return
+  }
   if (ev.shiftKey) {
     select(target, true)
     return
