@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.2.1]
+
 ### Added
 
 - The inspection overlay suppresses app interactions such as link navigation and form submission while it is active.
