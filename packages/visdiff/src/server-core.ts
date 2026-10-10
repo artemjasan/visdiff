@@ -164,7 +164,7 @@ export function createVisdiffHandler(options: CreateHandlerOptions): VisdiffRequ
       return true
     }
 
-    if (req.method === 'GET' && p === '/pending') {
+    if (req.method === 'GET' && (p === '/pending' || p === '/tasks')) {
       const tasks = await readPending(options.root)
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify(tasks, null, 2))
@@ -175,6 +175,12 @@ export function createVisdiffHandler(options: CreateHandlerOptions): VisdiffRequ
       const cleared = await clearPending(options.root)
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ cleared }))
+      return true
+    }
+
+    if (u.pathname.startsWith(`${VISDIFF_BASE}/`)) {
+      res.writeHead(404, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ error: 'not found' }))
       return true
     }
 

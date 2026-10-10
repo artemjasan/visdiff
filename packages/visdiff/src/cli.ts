@@ -11,6 +11,7 @@ Usage: visdiff <command>
 
   mcp            Run the MCP stdio server (tools: visdiff_pending_tasks, visdiff_clear_tasks)
   tasks          Print visual tasks (.visdiff/tasks.json)
+  show <id>      Print one pending task as JSON
   status         Show a one-line summary of each pending task
   instructions   Print the recommended coding-agent workflow
   clear [ids...] Remove only the listed task IDs; with no IDs (or --all), clear the entire queue
@@ -59,6 +60,14 @@ async function main(): Promise<void> {
     case 'tasks':
       await printTasks()
       return
+    case 'show': {
+      const id = argv[1]?.trim()
+      if (id === undefined || id === '') throw new Error('Usage: visdiff show <task-id>')
+      const tasks = (await readPending(process.cwd())).filter((task) => task.id === id)
+      if (tasks.length === 0) throw new Error(`No pending task with id ${id}`)
+      console.log(JSON.stringify(annotateProjectTasks(tasks, await detectTailwind(process.cwd()))[0], null, 2))
+      return
+    }
     case 'status':
       console.log(formatStatus(await readPending(process.cwd())))
       return

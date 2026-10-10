@@ -60,6 +60,14 @@ export const VisdiffTaskElementSchema = z.object({
   source: z.union([VisdiffSourceSchema, z.null()]).default(null),
   /** Class tokens on the rendered element; absent in older tasks. */
   classes: z.array(z.string().min(1)).max(64).optional(),
+  /** Computed-style facts read from the rendered element at capture time; absent in older tasks. */
+  context: z.object({
+    color: z.string().optional(),
+    backgroundColor: z.string().optional(),
+    fontSize: z.string().optional(),
+    lineHeight: z.string().optional(),
+    padding: z.string().optional(),
+  }).optional(),
 })
 
 /** Links element changes that came from one multi-selection operation. */

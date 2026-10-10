@@ -82,6 +82,9 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   btn.id = 'vd-toggle'
   btn.setAttribute('data-vd-ui', '')
   btn.textContent = 'visdiff'
+  btn.setAttribute('role', 'button')
+  btn.setAttribute('aria-label', 'Toggle visdiff')
+  btn.title = 'Toggle visdiff'
   btn.addEventListener('click', () => actions.toggle())
 
   const frame = createUiElement('div', 'data-vd-frame')
@@ -137,7 +140,7 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   resetBtn.textContent = '↺ Reset'
   resetBtn.addEventListener('click', () => actions.reset())
   const cancelBtn = document.createElement('button')
-  cancelBtn.textContent = '✕'
+  cancelBtn.textContent = window.matchMedia('(min-width: 640px)').matches ? 'Finish selection' : '✕'
   cancelBtn.setAttribute('aria-label', 'Finish selection')
   cancelBtn.title = 'Finish selection'
   cancelBtn.addEventListener('click', () => actions.finishSelection())
@@ -175,7 +178,7 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   const batchNoteField = document.createElement('textarea')
   batchNoteField.setAttribute('data-vd-note', '')
   batchNoteField.setAttribute('data-vd-ui', '')
-  batchNoteField.placeholder = 'What should the agent achieve? (optional)'
+  batchNoteField.placeholder = "What's wrong? (e.g. 'button too big', 'text unreadable')"
   batchNoteField.maxLength = 1000
   batchNoteField.rows = 2
   batchPanel.append(batchHeader, batchList, batchNoteField, batchActions)

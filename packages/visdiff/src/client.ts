@@ -444,6 +444,9 @@ async function save(): Promise<void> {
     return
   }
   const note = overlay?.batchNoteField.value.trim() ?? ''
+  if (note.length === 0 && changes.every((change) => change.edits.every((edit) => edit.kind === 'move' && edit.note === undefined))) {
+    toast('Tip: a small nudge is hard for the agent to interpret — add intent in the note', false)
+  }
   const payload = {
     url: location.href,
     viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -470,7 +473,9 @@ async function save(): Promise<void> {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     changeBatch.clear()
     renderPendingChanges()
-    toast(`Batch queued with ${changes.length} element(s)`, false)
+    const body = (await res.json().catch(() => null)) as { id?: unknown } | null
+    const id = typeof body?.id === 'string' ? ` (task ${body.id})` : ''
+    toast(`Batch queued with ${changes.length} element(s)${id}`, false)
   } catch (err) {
     console.error('[visdiff] save failed', err)
     toast('Save failed — changes remain in the panel', true)
@@ -555,7 +560,11 @@ function onKey(ev: KeyboardEvent): void {
     return
   }
   const eventTarget = ev.target
-  if (eventTarget instanceof Element && eventTarget.closest('input, textarea, select, [contenteditable="true"], [data-vd-ui]') !== null) return
+  if (eventTarget instanceof Element) {
+    if (eventTarget.closest('input, textarea, select, [contenteditable="true"]') !== null) return
+    const chrome = eventTarget.closest('[data-vd-ui]')
+    if (chrome !== null && chrome.closest('[data-vd-comment-panel], [data-vd-batch]') !== null) return
+  }
   if (ev.altKey || ev.ctrlKey || ev.metaKey) return
   if (selected === null) return
   const step = ev.shiftKey ? 10 : 1

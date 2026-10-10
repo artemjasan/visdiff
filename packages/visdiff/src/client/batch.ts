@@ -30,6 +30,18 @@ function classTokens(target: EditableElement): { classes?: string[] } {
   return classes.length > 0 ? { classes } : {}
 }
 
+const CONTEXT_PROPERTIES = ['color', 'backgroundColor', 'fontSize', 'lineHeight', 'padding'] as const
+
+function computedContext(target: EditableElement): { context?: NonNullable<VisdiffTaskElement['context']> } {
+  const style = getComputedStyle(target)
+  const context: NonNullable<VisdiffTaskElement['context']> = {}
+  for (const property of CONTEXT_PROPERTIES) {
+    const value = style[property]
+    if (value !== '') context[property] = value
+  }
+  return Object.keys(context).length > 0 ? { context } : {}
+}
+
 function readGeometry(target: EditableElement): VisdiffGeometry {
   const rect = target.getBoundingClientRect()
   return {
@@ -69,6 +81,7 @@ export class ChangeBatch {
       text: (target.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 80),
       source,
       ...classTokens(target),
+      ...computedContext(target),
     }
     let staged = this.items.find((change) => sameElement(change.element, element))
     const after = readGeometry(target)
