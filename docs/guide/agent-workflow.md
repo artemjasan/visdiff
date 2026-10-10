@@ -14,11 +14,11 @@ Do not repeat setup on later tasks unless project configuration changed.
 
 ## Process each task
 
-1. Read the complete task, including task-level and edit-level notes.
+1. Read the complete task, including task-level and edit-level notes. Notes are the source of user intent; if no note states the goal and the result is ambiguous, ask instead of guessing from CSS values or measurements.
 2. Group changes by `selectionGroups.id`. `member` is a selected element; `layout-container` is their shared parent. `selectedCount` counts selected elements, not change records. Member entries can be absent when no direct member edits were made.
-3. Inspect `element.source` and nearby code. Use selector, text, URL, and viewport as runtime context; do not paste them into source.
-4. Interpret `from` → `to` as the observed browser result. Choose the smallest maintainable source change and preserve responsive behavior.
-5. If responsive scope is unclear from the note, viewport, and CSS delta, ask before choosing global or breakpoint-specific behavior.
+3. Inspect `element.source` and nearby code. Use selector, text, URL, viewport, and geometry as runtime context; do not paste them into source.
+4. Interpret `from` → `to`, optional move `delta`, and optional before/after geometry as measurements of the observed browser result. They are not user intent or source instructions. Choose the smallest maintainable source change and preserve responsive behavior.
+5. The captured viewport is where the result was observed, not permission to change only that breakpoint or remove behavior at other sizes. If responsive scope is unclear from the note and measurements, ask before choosing global or breakpoint-specific behavior.
 6. Run relevant checks and verify at the captured viewport when possible.
 7. Clear only IDs whose changes are implemented and verified. Leave incomplete, ambiguous, or unverified tasks pending.
 

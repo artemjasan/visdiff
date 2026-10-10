@@ -175,7 +175,7 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   const batchNoteField = document.createElement('textarea')
   batchNoteField.setAttribute('data-vd-note', '')
   batchNoteField.setAttribute('data-vd-ui', '')
-  batchNoteField.placeholder = 'Optional note for the agent'
+  batchNoteField.placeholder = 'What should the agent achieve? (optional)'
   batchNoteField.maxLength = 1000
   batchNoteField.rows = 2
   batchPanel.append(batchHeader, batchList, batchNoteField, batchActions)

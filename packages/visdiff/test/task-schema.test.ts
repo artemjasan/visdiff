@@ -29,6 +29,35 @@ void test('note is trimmed and omitted when blank', () => {
   assert.equal(withoutNote.note, undefined)
 })
 
+void test('optional geometry and move delta parse while legacy tasks remain valid', () => {
+  const legacy = VisdiffTaskPayloadSchema.parse(sampleTask)
+  assert.equal(legacy.changes[0]?.geometry, undefined)
+  assert.equal(legacy.changes[0]?.edits[0]?.delta, undefined)
+
+  const measured = VisdiffTaskPayloadSchema.parse({
+    ...sampleTask,
+    changes: [{
+      ...sampleTask.changes[0],
+      geometry: {
+        before: { x: 280, y: 210, width: 160, height: 44 },
+        after: { x: 215, y: 210, width: 160, height: 44 },
+      },
+      edits: [{
+        property: 'transform',
+        from: 'none',
+        to: 'translate(-65px, 0px)',
+        kind: 'move',
+        delta: { x: -65, y: 0 },
+      }],
+    }],
+  })
+  assert.deepEqual(measured.changes[0]?.geometry, {
+    before: { x: 280, y: 210, width: 160, height: 44 },
+    after: { x: 215, y: 210, width: 160, height: 44 },
+  })
+  assert.deepEqual(measured.changes[0]?.edits[0]?.delta, { x: -65, y: 0 })
+})
+
 void test('drag transform composes from the original baseline instead of accumulating prior transforms', () => {
   assert.equal(composeMoveTransform('rotate(15deg)', 12, -4), 'translate(12px, -4px) rotate(15deg)')
   assert.equal(composeMoveTransform('none', 8, 6), 'translate(8px, 6px)')

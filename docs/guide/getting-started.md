@@ -28,7 +28,7 @@ The overlay, source instrumentation, and local endpoint run only in development.
 
 ## 3. Capture a task
 
-Start or restart the dev server, open the app, then select and edit an element in the **visdiff** overlay. Add a note when intent or responsive constraints are not obvious, then click **Apply**.
+Start or restart the dev server, open the app, then select and edit an element in the **visdiff** overlay. Add a note describing the intended result, especially for grouped or ambiguous edits; the agent should ask rather than infer intent from measurements. Then click **Apply**.
 
 While the overlay is active, app interactions such as link navigation and form submission are suppressed so inspection does not trigger page actions.
 

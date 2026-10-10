@@ -14,6 +14,10 @@ export const VisdiffEditSchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
   kind: z.enum(['move', 'resize', 'style']).optional(),
+  delta: z.object({
+    x: z.number(),
+    y: z.number(),
+  }).optional(),
   note: z.preprocess(
     (value) => typeof value === 'string' ? value.trim() : value,
     z.string().max(400).optional().transform((value) => value && value.length > 0 ? value : undefined),
@@ -27,7 +31,26 @@ export const VisdiffEditSchema = z.object({
   const to = edit.to ?? from
   const kind = edit.kind ?? 'resize'
   const note = edit.note
-  return { property: edit.property, from, to, kind, ...(note ? { note } : {}) }
+  return {
+    property: edit.property,
+    from,
+    to,
+    kind,
+    ...(edit.delta === undefined ? {} : { delta: edit.delta }),
+    ...(note ? { note } : {}),
+  }
+})
+
+export const VisdiffGeometrySchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  width: z.number().nonnegative(),
+  height: z.number().nonnegative(),
+})
+
+export const VisdiffChangeGeometrySchema = z.object({
+  before: VisdiffGeometrySchema,
+  after: VisdiffGeometrySchema,
 })
 
 export const VisdiffTaskElementSchema = z.object({
@@ -50,6 +73,8 @@ export const VisdiffSelectionGroupSchema = z.object({
 export const VisdiffTaskChangeSchema = z.object({
   element: VisdiffTaskElementSchema,
   edits: z.array(VisdiffEditSchema).min(1),
+  /** Optional viewport-relative CSS-pixel bounds; absent in earlier tasks. */
+  geometry: VisdiffChangeGeometrySchema.optional(),
   selectionGroups: z.array(VisdiffSelectionGroupSchema).optional(),
 })
 
@@ -80,6 +105,8 @@ export const VisdiffTaskSchema = VisdiffTaskPayloadSchema.extend({
 export const VisdiffTaskQueueSchema = z.array(VisdiffTaskSchema)
 
 export type VisdiffSource = z.infer<typeof VisdiffSourceSchema>
+export type VisdiffGeometry = z.infer<typeof VisdiffGeometrySchema>
+export type VisdiffChangeGeometry = z.infer<typeof VisdiffChangeGeometrySchema>
 export type VisdiffEdit = z.infer<typeof VisdiffEditSchema>
 export type VisdiffTaskElement = z.infer<typeof VisdiffTaskElementSchema>
 export type VisdiffSelectionGroup = z.infer<typeof VisdiffSelectionGroupSchema>

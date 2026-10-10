@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.3.0]
+
+### Added
+
+- Task changes include optional viewport-relative before/after geometry; move edits include the observed screen displacement.
+
+### Changed
+
+- Agent instructions clarify that measurements and viewport do not express intent; ambiguous tasks should prompt a question instead of a guess.
+
 ## [0.2.1]
 
 ### Added

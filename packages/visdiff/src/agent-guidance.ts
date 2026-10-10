@@ -11,9 +11,9 @@ For each visual task:
 1. Read every field of the task and every change/edit before modifying source. Read task.note and edit.note as user intent; notes may constrain the whole task or only one edit.
 2. Treat url and viewport as the page and browser dimensions where the result was observed. Treat receivedAt as queue metadata, not implementation guidance or priority.
 3. For each change, inspect element.source.file and its nearby component/styles first. Use source.line, source.column, and source.component as navigation hints; source can be null or incomplete. If so, search using element.text and inspect likely components. The selector and tag describe the rendered DOM and are runtime context, not reliable source-code selectors.
-4. Interpret each edit's property, from, to, and kind together. "from" and "to" record the observed browser change; they are evidence of the desired result, not a patch or instruction to copy generated CSS. Edit notes add intent for that specific property.
+4. Interpret each edit's property, from, to, kind, optional delta, and change geometry together. "from" and "to" record observed CSS; delta records observed screen displacement for a move; geometry records viewport-relative bounds before and after the edit. All are evidence, not a source patch or proof of intent. Only task and edit notes express user intent.
 5. Group related changes by selectionGroups.id. A "member" is a selected element; "layout-container" is its shared parent. selectedCount is the number of selected elements, not the number of task changes; a layout-container entry represents one change to their shared parent. Apply related changes together when appropriate.
-6. Make the smallest maintainable source change that achieves the requested result. Preserve responsive behavior and unrelated styling. If the note, captured viewport, and CSS delta leave responsive scope unclear, ask before choosing between a breakpoint-specific and global change.
+6. Make the smallest maintainable source change that achieves the requested result. Preserve responsive behavior and unrelated styling. The viewport is where the result was observed, not permission to modify only that breakpoint or remove behavior at other sizes. If no note states the goal and the result is ambiguous, ask rather than guessing. If responsive scope is unclear, ask before choosing between a breakpoint-specific and global change.
 7. Run relevant checks and verify the result in the application at the task viewport when possible. If a task is ambiguous or cannot be verified, leave it pending and report the limitation.
 8. Remove only task IDs whose changes were implemented and verified. With the CLI, use "visdiff clear <task-id> [task-id ...]"; never use bare "visdiff clear" for partial completion. With MCP, pass only those IDs to visdiff_clear_tasks.
 
@@ -24,6 +24,7 @@ Task field reference:
 - note is an optional task-wide constraint; changes is the list of rendered elements and their edits.
 - element.tag, selector, and text describe the rendered element. element.source identifies the source file and optional location/component, or is null if unavailable.
 - Each edit records a CSS property, observed from/to values, an optional move/resize/style kind, and an optional edit-specific note. Missing optional fields are valid; do not infer intent that is not present.
+- Move edits may include delta (x/y, CSS pixels) for the observed screen displacement. Changes may include before/after geometry bounds (x, y, width, height, CSS pixels relative to the viewport). These measurements describe what happened; they do not explain why.
 - selectionGroups is optional. Its id links changes from one multi-selection operation; role distinguishes selected members from their shared layout container.
 
 The CLI command "visdiff instructions" prints this workflow and field reference. MCP clients can read the "visdiff://agent-workflow" and "visdiff://task-format" resources.`
@@ -45,9 +46,10 @@ Each change contains:
 - element.selector: runtime selector for context, not necessarily a selector present in source.
 - element.text: short rendered text context that can help locate the component.
 - element.source: source file and optional line, column, and component; null when unavailable.
+- geometry: optional before/after x, y, width, and height in viewport-relative CSS pixels.
 - edits: observed CSS property changes.
 - selectionGroups: optional links to related changes from one multi-selection.
 
-Each edit contains property, observed from/to values, an optional kind (move, resize, or style), and an optional note. Interpret these values with the task notes and browser context; inspect source and implement the intent rather than copying generated CSS.
+Each edit contains property, observed from/to values, an optional kind (move, resize, or style), an optional move delta (x/y screen displacement in CSS pixels), and an optional note. Interpret measurements with the task notes and browser context; inspect source and implement the intent rather than copying generated CSS.
 
 For selectionGroups, id links related changes, selectedCount counts selected elements (not change records), and role is either member or layout-container. A layout-container change describes one shared parent even when multiple members are selected. Optional notes, source details, kinds, and groups may be absent in older tasks.`

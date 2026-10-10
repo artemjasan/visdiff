@@ -57,9 +57,36 @@ test('selects an element, stages a keyboard move, and saves its source-aware tas
         from: 'none',
         to: 'translate(1px, 0px)',
         kind: 'move',
+        delta: { x: 1, y: 0 },
       }],
+      geometry: {
+        before: {
+          x: expect.any(Number),
+          y: expect.any(Number),
+          width: expect.any(Number),
+          height: expect.any(Number),
+        },
+        after: {
+          x: expect.any(Number),
+          y: expect.any(Number),
+          width: expect.any(Number),
+          height: expect.any(Number),
+        },
+      },
     }],
   })
   expect(savedPayload).toMatchObject({ url: new URL(page.url()).origin + '/' })
+  const capturedChange = (savedPayload as {
+    changes: Array<{
+      geometry: {
+        before: { x: number; y: number; width: number; height: number }
+        after: { x: number; y: number; width: number; height: number }
+      }
+    }>
+  }).changes[0]
+  expect(capturedChange).toBeDefined()
+  if (capturedChange === undefined) throw new Error('task payload did not contain a captured change')
+  expect(capturedChange.geometry.after.x - capturedChange.geometry.before.x).toBeCloseTo(1, 1)
+  expect(capturedChange.geometry.after.y - capturedChange.geometry.before.y).toBeCloseTo(0, 1)
   expect(pageErrors).toEqual([])
 })

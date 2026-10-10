@@ -47,6 +47,7 @@ export interface ElementEditorActions {
 
 export function readBaseline(element: EditableElement): ElementBaseline {
   const computed = getComputedStyle(element)
+  const rect = element.getBoundingClientRect()
   const widthExtras = computed.boxSizing === 'border-box'
     ? 0
     : Number.parseFloat(computed.paddingLeft) + Number.parseFloat(computed.paddingRight)
@@ -63,6 +64,12 @@ export function readBaseline(element: EditableElement): ElementBaseline {
     }
   }
   return {
+    geometry: {
+      x: Math.round(rect.x * 100) / 100,
+      y: Math.round(rect.y * 100) / 100,
+      width: Math.round(rect.width * 100) / 100,
+      height: Math.round(rect.height * 100) / 100,
+    },
     cssWidth: computed.width,
     cssHeight: computed.height,
     widthExtras,
@@ -83,14 +90,16 @@ export function keepRecord(
   from: string,
   to: string,
   kind: EditRecord['kind'],
+  delta?: { x: number; y: number },
 ): void {
   if (targetEdits === null) return
   const previous = targetEdits[property]
   if (previous !== undefined) {
     previous.to = to
+    if (delta !== undefined) previous.delta = delta
     return
   }
-  targetEdits[property] = { property, from, to, kind }
+  targetEdits[property] = { property, from, to, kind, ...(delta === undefined ? {} : { delta }) }
 }
 
 export function restoreInlineStyle(
@@ -147,7 +156,7 @@ export class ElementEditor {
       move.dy += dy
       const value = composeMoveTransform(move.baseline.transform, move.dx, move.dy)
       target.style.setProperty('transform', value, 'important')
-      keepRecord(move.edits, 'transform', move.baseline.transform, value, 'move')
+      keepRecord(move.edits, 'transform', move.baseline.transform, value, 'move', { x: move.dx, y: move.dy })
       this.actions.stage(
         target,
         move.baseline,
@@ -191,7 +200,7 @@ export class ElementEditor {
         if (mode === 'move') {
           const value = composeMoveTransform(base.transform, dx, dy)
           target.style.setProperty('transform', value, 'important')
-          keepRecord(record.edits, 'transform', base.transform, value, 'move')
+          keepRecord(record.edits, 'transform', base.transform, value, 'move', { x: dx, y: dy })
         }
         if (mode === 'w' || mode === 'wh') {
           const outerWidth = Math.max(8, Math.round(gestureRect.width + dx))

@@ -11,7 +11,12 @@ import {
 } from './model'
 import { restoreBaselineProperty, restoreInlineStyle } from './editing'
 import { cssPath } from './source'
-import type { VisdiffSelectionGroup, VisdiffTaskChange, VisdiffTaskElement } from '../types'
+import type {
+  VisdiffGeometry,
+  VisdiffSelectionGroup,
+  VisdiffTaskChange,
+  VisdiffTaskElement,
+} from '../types'
 
 type EditableElement = HTMLElement | SVGElement
 
@@ -23,6 +28,16 @@ interface ChangeBatchActions {
 function classTokens(target: EditableElement): { classes?: string[] } {
   const classes = (target.getAttribute('class') ?? '').split(/\s+/).filter(Boolean).slice(0, 64)
   return classes.length > 0 ? { classes } : {}
+}
+
+function readGeometry(target: EditableElement): VisdiffGeometry {
+  const rect = target.getBoundingClientRect()
+  return {
+    x: Math.round(rect.x * 100) / 100,
+    y: Math.round(rect.y * 100) / 100,
+    width: Math.round(rect.width * 100) / 100,
+    height: Math.round(rect.height * 100) / 100,
+  }
 }
 
 export class ChangeBatch {
@@ -56,9 +71,12 @@ export class ChangeBatch {
       ...classTokens(target),
     }
     let staged = this.items.find((change) => sameElement(change.element, element))
+    const after = readGeometry(target)
 
     if (staged === undefined) {
-      const effective = incoming.filter((edit) => edit.from !== edit.to).map((edit) => ({ ...edit }))
+      const effective = incoming.filter((edit) => edit.from !== edit.to).map((edit) => ({
+        ...edit,
+      }))
       if (effective.length === 0) {
         for (const edit of incoming) {
           const property = this.editProperty(edit.property)
@@ -69,6 +87,7 @@ export class ChangeBatch {
       staged = {
         element,
         edits: effective,
+        geometry: { before: baseline.geometry, after },
         selectionGroups: selectionGroup === undefined ? [] : [{ ...selectionGroup }],
         target,
         restore: { ...baseline.inlineStyles },
@@ -79,17 +98,28 @@ export class ChangeBatch {
       for (const edit of incoming) {
         const existingIndex = staged.edits.findIndex((previous) => previous.property === edit.property)
         if (existingIndex === -1) {
-          if (edit.from !== edit.to) staged.edits.push({ ...edit })
+          if (edit.from !== edit.to) {
+            staged.edits.push({ ...edit })
+          }
           continue
         }
         const previous = staged.edits[existingIndex]
         if (previous === undefined) continue
         previous.to = edit.to
+        if (edit.kind === 'move' && edit.delta !== undefined) {
+          previous.delta = edit.from === previous.from
+            ? edit.delta
+            : {
+              x: (previous.delta?.x ?? 0) + edit.delta.x,
+              y: (previous.delta?.y ?? 0) + edit.delta.y,
+            }
+        }
         if (previous.from === previous.to) {
           this.restoreProperty(staged, edit.property)
           staged.edits.splice(existingIndex, 1)
         }
       }
+      staged.geometry.after = readGeometry(target)
     }
 
     if (staged.edits.length === 0) this.removeItem(staged)
@@ -106,6 +136,7 @@ export class ChangeBatch {
     this.restoreProperty(change, property)
     change.edits.splice(editIndex, 1)
     if (change.edits.length === 0) this.items.splice(groupIndex, 1)
+    else change.geometry.after = readGeometry(change.target)
     this.actions.changed()
     return true
   }
@@ -129,6 +160,7 @@ export class ChangeBatch {
       return [{
         element: group.element,
         edits,
+        geometry: group.geometry,
         ...(group.selectionGroups.length > 0
           ? { selectionGroups: group.selectionGroups.map((selectionGroup) => ({ ...selectionGroup })) }
           : {}),

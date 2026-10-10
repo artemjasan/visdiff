@@ -1,6 +1,6 @@
 {
   "name": "visdiff",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "description": "Visual diff bridge: browser overlay edits → JSON tasks for coding agents (MCP). unplugin-based, TypeScript-first, npx-runnable.",
   "license": "MIT",

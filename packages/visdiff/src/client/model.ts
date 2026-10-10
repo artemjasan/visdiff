@@ -1,4 +1,10 @@
-import type { VisdiffEdit, VisdiffSelectionGroup, VisdiffTaskElement } from '../types'
+import type {
+  VisdiffChangeGeometry,
+  VisdiffEdit,
+  VisdiffGeometry,
+  VisdiffSelectionGroup,
+  VisdiffTaskElement,
+} from '../types'
 
 export interface SourceInfo {
   file: string
@@ -8,6 +14,7 @@ export interface SourceInfo {
 }
 
 export interface ElementBaseline {
+  geometry: VisdiffGeometry
   cssWidth: string
   cssHeight: string
   widthExtras: number
@@ -54,6 +61,7 @@ export type RestoreSnapshot = Partial<Record<EditProp, InlineStyleSnapshot>>
 export interface StagedChange {
   element: VisdiffTaskElement
   edits: EditList
+  geometry: VisdiffChangeGeometry
   selectionGroups: VisdiffSelectionGroup[]
   target: HTMLElement | SVGElement
   restore: RestoreSnapshot
@@ -73,7 +81,13 @@ export function currentEditList(
   for (const prop of EDIT_PROPERTIES) {
     const edit = targetEdits[prop]
     if (edit === undefined) continue
-    list.push({ property: edit.property, from: edit.from, to: edit.to, kind: edit.kind })
+    list.push({
+      property: edit.property,
+      from: edit.from,
+      to: edit.to,
+      kind: edit.kind,
+      ...(edit.delta === undefined ? {} : { delta: edit.delta }),
+    })
   }
   return list
 }

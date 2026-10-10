@@ -25,10 +25,13 @@ Each item in `changes` contains:
 | `element.text` | Short rendered text context. |
 | `element.classes` | Optional class tokens on the rendered element (up to 64). |
 | `element.source` | File, line, column, and optional component; `null` when unavailable. |
-| `edits` | CSS properties with observed `from`, `to`, `kind`, and optional note. |
+| `geometry` | Optional before/after element bounds in CSS pixels relative to the captured viewport. |
+| `edits` | CSS properties with observed `from`, `to`, `kind`, and optional note; move edits may include observed `delta`. |
 | `selectionGroups` | Optional links between related multi-selection changes. |
 
 Edit kinds are `move`, `resize`, and `style`. Layout controls create `style` edits on the shared parent.
+
+`geometry` contains `before` and `after` objects, each with `x`, `y`, `width`, and `height`. A move edit's `delta` contains `x` and `y` displacement in CSS pixels. These values describe the observed result, not why the user requested it. Task and edit notes provide intent; without a note, ask when the goal is ambiguous.
 
 ## Selection groups
 
@@ -37,7 +40,7 @@ Edit kinds are `move`, `resize`, and `style`. Layout controls create `style` edi
 - `role: "member"` identifies a selected element.
 - `role: "layout-container"` identifies one change to the common parent. Member entries may be absent if no direct member edits were made.
 
-Notes, source details, and selection groups are optional for compatibility with older tasks. See the [agent workflow](/guide/agent-workflow) for implementation rules.
+Notes, source details, geometry, move deltas, and selection groups are optional for compatibility with older tasks. See the [agent workflow](/guide/agent-workflow) for implementation rules.
 
 ## Tailwind hints
 
