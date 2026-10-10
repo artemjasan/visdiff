@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- The inspection overlay suppresses app interactions such as link navigation and form submission while it is active.
+- Browser E2E coverage for source-aware task capture in React, Vue, Svelte, and Tailwind examples, plus an end-to-end Tailwind hint scenario.
+
 ## [0.2.0]
 
 ### Added

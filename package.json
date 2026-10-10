@@ -5,7 +5,10 @@
   "type": "module",
   "workspaces": [
     "packages/visdiff",
-    "examples/vite-react"
+    "examples/vite-react",
+    "examples/vite-vue",
+    "examples/vite-svelte",
+    "examples/vite-react-tailwind"
   ],
   "scripts": {
     "build": "npm run build --workspace packages/visdiff",
@@ -22,6 +25,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.5",
     "vitepress": "^1.6.4"
   }
 }

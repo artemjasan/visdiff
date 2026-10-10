@@ -1,7 +1,17 @@
 import { expect, test } from '@playwright/test'
 
-test('selects an element, stages a keyboard move, and saves its source-aware task', async ({ page }) => {
-  const example = { heading: 'Spring launch', navigation: 'Features', sourceFile: 'App.tsx' }
+const examples = {
+  react: { heading: 'Spring launch', navigation: 'Features', sourceFile: 'App.tsx' },
+  vue: { heading: 'Summer collection', navigation: 'Projects', sourceFile: 'App.vue' },
+  svelte: { heading: 'Summer collection', navigation: 'Projects', sourceFile: 'App.svelte' },
+  'react-tailwind': { heading: 'Spring launch', navigation: 'Features', sourceFile: 'App.tsx' },
+} as const
+
+test('selects an element, stages a keyboard move, and saves its source-aware task', async ({ page }, testInfo) => {
+  const example = examples[testInfo.project.name as keyof typeof examples]
+  expect(example, `unknown E2E project "${testInfo.project.name}"`).toBeDefined()
+  if (example === undefined) return
+
   let savedPayload: unknown
   const pageErrors: string[] = []
 
@@ -19,6 +29,9 @@ test('selects an element, stages a keyboard move, and saves its source-aware tas
   await expect(page.getByRole('heading', { name: example.heading })).toBeVisible()
 
   await page.getByRole('button', { name: 'visdiff' }).click()
+  const appUrl = page.url()
+  await page.getByRole('link', { name: example.navigation }).click()
+  await expect(page).toHaveURL(appUrl)
   await page.getByRole('heading', { name: example.heading }).click()
   await page.getByRole('link', { name: example.navigation }).focus()
   await page.keyboard.press('ArrowRight')

@@ -30,6 +30,8 @@ The overlay, source instrumentation, and local endpoint run only in development.
 
 Start or restart the dev server, open the app, then select and edit an element in the **visdiff** overlay. Add a note when intent or responsive constraints are not obvious, then click **Apply**.
 
+While the overlay is active, app interactions such as link navigation and form submission are suppressed so inspection does not trigger page actions.
+
 Visdiff queues task data; it does not edit application source.
 
 ## 4. Connect your agent

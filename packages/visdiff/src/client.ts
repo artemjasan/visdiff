@@ -498,6 +498,20 @@ function onPointerDown(ev: PointerEvent): void {
   select(target)
 }
 
+// Swallow the rest of the gesture so page buttons/links/forms don't fire while inspecting.
+function blockPageInteraction(ev: Event): void {
+  if (!running) return
+  const target = ev.target
+  if (!(target instanceof Element) || isSystemUiElement(target)) return
+  ev.preventDefault()
+  ev.stopImmediatePropagation()
+}
+
+const BLOCKED_EVENTS = [
+  'click', 'dblclick', 'auxclick', 'mousedown', 'mouseup', 'contextmenu', 'submit',
+  'touchstart', 'touchend', 'dragstart',
+] as const
+
 function onKey(ev: KeyboardEvent): void {
   if (!running) return
   if (ev.key === 'Escape') {
@@ -562,6 +576,9 @@ function mountUI(): void {
   document.addEventListener('mousemove', onHover, true)
   document.addEventListener('pointerdown', onPointerDown, true)
   document.addEventListener('keydown', onKey, true)
+  for (const type of BLOCKED_EVENTS) {
+    window.addEventListener(type, blockPageInteraction, { capture: true, passive: false })
+  }
   window.addEventListener('resize', () => batchPanel.clamp())
   renderPendingChanges()
 }

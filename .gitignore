@@ -1,13 +1,12 @@
 /node_modules/
 **/node_modules/
 **/.visdiff/
-/examples/*
-!/examples/vite-react/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
 coverage/
 test-results/
 packages/visdiff/dist/
+/examples/*/dist/
 .DS_Store
 *.log
 npm-debug.log*
