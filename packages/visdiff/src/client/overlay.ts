@@ -48,7 +48,7 @@ function createField(labelText: string, control: HTMLSelectElement): HTMLLabelEl
 export interface OverlayActions {
   toggle(): void
   reset(): void
-  cancelSelection(): void
+  finishSelection(): void
   startDrag(event: PointerEvent, mode: 'w' | 'h' | 'wh'): void
   startPanelDrag(event: PointerEvent): void
   hideBatchPanel(): void
@@ -138,7 +138,9 @@ export function createOverlay(actions: OverlayActions): OverlayElements {
   resetBtn.addEventListener('click', () => actions.reset())
   const cancelBtn = document.createElement('button')
   cancelBtn.textContent = '✕'
-  cancelBtn.addEventListener('click', () => actions.cancelSelection())
+  cancelBtn.setAttribute('aria-label', 'Finish selection')
+  cancelBtn.title = 'Finish selection'
+  cancelBtn.addEventListener('click', () => actions.finishSelection())
   const barControls = document.createElement('div')
   barControls.setAttribute('data-vd-bar-controls', '')
   barControls.append(barLabel, layoutToggleBtn, resetBtn, cancelBtn)

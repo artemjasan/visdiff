@@ -84,7 +84,9 @@ test('Tailwind projects save real tasks and read them back with theme-aware clas
   await articles.nth(0).click({ position: { x: 8, y: 8 } })
   await articles.nth(1).click({ position: { x: 8, y: 8 }, modifiers: ['Shift'] })
   await page.locator('[data-vd-layout-toggle]').click()
-  await page.getByLabel('Gap').selectOption('16px')
+  await page.getByLabel('Gap', { exact: true }).selectOption('16px')
+  await page.keyboard.press('Escape')
+  await expect(page.locator('[data-vd-change]').filter({ hasText: 'gap' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Apply' }).click()
   await expect(page.locator('[data-vd-toast]')).toContainText('Batch queued with 2 element(s)')

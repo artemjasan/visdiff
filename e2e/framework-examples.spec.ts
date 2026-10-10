@@ -40,6 +40,8 @@ test('selects an element, stages a keyboard move, and saves its source-aware tas
   await expect(stagedChange).toContainText('transform')
   await expect(stagedChange).toContainText('translate(1px, 0px)')
 
+  await page.getByRole('button', { name: 'Finish selection' }).click()
+  await expect(stagedChange).toBeVisible()
   await page.getByRole('button', { name: 'Apply' }).click()
   await expect(page.locator('[data-vd-toast]')).toContainText('Batch queued with 1 element')
 

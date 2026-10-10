@@ -191,8 +191,8 @@ function hasLayoutEdits(): boolean {
   return layoutEditor.hasChanges()
 }
 
-function cancelSelection(): void {
-  if (hasEdits()) resetOverrides(false)
+function finishSelection(): void {
+  if (hasEdits() || hasLayoutEdits()) stageCurrentChange()
   deselect()
 }
 
@@ -515,7 +515,7 @@ const BLOCKED_EVENTS = [
 function onKey(ev: KeyboardEvent): void {
   if (!running) return
   if (ev.key === 'Escape') {
-    if (selected !== null) cancelSelection()
+    if (selected !== null) finishSelection()
     else exit()
     return
   }
@@ -562,7 +562,7 @@ function mountUI(): void {
   overlay = createOverlay({
     toggle,
     reset: () => resetOverrides(),
-    cancelSelection,
+    finishSelection,
     startDrag,
     startPanelDrag: (event) => batchPanel.startDrag(event),
     hideBatchPanel,
