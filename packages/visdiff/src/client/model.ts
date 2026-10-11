@@ -4,6 +4,7 @@ import type {
   VisdiffGeometry,
   VisdiffSelectionGroup,
   VisdiffTaskElement,
+  VisdiffStyleContext,
 } from '../types'
 
 export interface SourceInfo {
@@ -22,6 +23,8 @@ export interface ElementBaseline {
   borderBox: boolean
   transform: string
   inlineStyles: Partial<Record<EditProp, InlineStyleSnapshot>>
+  /** Computed style facts before any edit. */
+  styleContext: VisdiffStyleContext
 }
 
 export type EditRecord = VisdiffEdit

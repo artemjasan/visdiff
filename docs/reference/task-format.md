@@ -24,6 +24,7 @@ Each item in `changes` contains:
 | `element.selector` | Runtime selector for locating the element. |
 | `element.text` | Short rendered text context. |
 | `element.classes` | Optional class tokens on the rendered element (up to 64). |
+| `element.context` | Optional computed style facts before the edit: `color`, `backgroundColor`, `fontSize`, `lineHeight`, `padding`. Evidence, not instructions. |
 | `element.source` | File, line, column, and optional component; `null` when unavailable. |
 | `geometry` | Optional before/after element bounds in CSS pixels relative to the captured viewport. |
 | `edits` | CSS properties with observed `from`, `to`, `kind`, and optional note; move edits may include observed `delta`. |

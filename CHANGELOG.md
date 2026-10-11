@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Task elements include `element.context`, computed style facts (`color`, `backgroundColor`, `fontSize`, `lineHeight`, `padding`) captured before the edit, so agents can see the defect for class-less elements. Pasted prompts include them.
+
 ## [0.3.0]
 
 ### Added

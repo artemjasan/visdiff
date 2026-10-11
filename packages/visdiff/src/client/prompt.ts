@@ -50,6 +50,11 @@ export function buildPrompt(changes: VisdiffTaskChange[], context: PromptContext
     if (classes !== undefined && classes.length > 0) {
       lines.push(`   Rendered classes (context): ${JSON.stringify(classes)}`)
     }
+    const style = change.element.context
+    if (style !== undefined) {
+      const facts = Object.entries(style).map(([key, value]) => `${key} ${value}`)
+      if (facts.length > 0) lines.push(`   Computed style before edit (context): ${facts.join('; ')}`)
+    }
     for (const group of change.selectionGroups ?? []) {
       lines.push(describeSelectionGroup(group))
     }

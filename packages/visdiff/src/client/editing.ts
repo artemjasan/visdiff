@@ -77,6 +77,13 @@ export function readBaseline(element: EditableElement): ElementBaseline {
     borderBox: computed.boxSizing === 'border-box',
     transform: computed.transform,
     inlineStyles,
+    styleContext: {
+      color: computed.color,
+      backgroundColor: computed.backgroundColor,
+      fontSize: computed.fontSize,
+      lineHeight: computed.lineHeight,
+      padding: computed.padding,
+    },
   }
 }
 

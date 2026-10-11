@@ -69,6 +69,7 @@ export class ChangeBatch {
       text: (target.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 80),
       source,
       ...classTokens(target),
+      context: { ...baseline.styleContext },
     }
     let staged = this.items.find((change) => sameElement(change.element, element))
     const after = readGeometry(target)

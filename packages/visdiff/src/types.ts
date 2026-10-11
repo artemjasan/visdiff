@@ -8,6 +8,15 @@ export const VisdiffSourceSchema = z.object({
   component: z.string().optional(),
 })
 
+/** Computed style facts observed in the browser at capture time; agent evidence, not instructions. */
+export const VisdiffStyleContextSchema = z.object({
+  color: z.string().optional(),
+  backgroundColor: z.string().optional(),
+  fontSize: z.string().optional(),
+  lineHeight: z.string().optional(),
+  padding: z.string().optional(),
+})
+
 /** One explicitly applied visual edit. */
 export const VisdiffEditSchema = z.object({
   property: z.string().min(1),
@@ -22,6 +31,16 @@ export const VisdiffEditSchema = z.object({
     (value) => typeof value === 'string' ? value.trim() : value,
     z.string().max(400).optional().transform((value) => value && value.length > 0 ? value : undefined),
   ),
+  /** Tailwind class suggestion for this edit; attached when the project uses Tailwind. */
+  tailwind: z.object({
+    suggestion: z.string().min(1),
+    exact: z.boolean(),
+    alternative: z.string().min(1).optional(),
+    replaces: z.array(z.string()).optional(),
+    breakpoint: z.string().min(1).optional(),
+    responsive: z.string().min(1).optional(),
+    replacesAtBreakpoint: z.array(z.string()).optional(),
+  }).optional(),
 }).superRefine((edit, ctx) => {
   if (edit.from === undefined && edit.to === undefined) {
     ctx.addIssue({ code: 'custom', message: 'an edit requires a from or to value' })
@@ -38,6 +57,7 @@ export const VisdiffEditSchema = z.object({
     kind,
     ...(edit.delta === undefined ? {} : { delta: edit.delta }),
     ...(note ? { note } : {}),
+    ...(edit.tailwind === undefined ? {} : { tailwind: edit.tailwind }),
   }
 })
 
@@ -60,6 +80,8 @@ export const VisdiffTaskElementSchema = z.object({
   source: z.union([VisdiffSourceSchema, z.null()]).default(null),
   /** Class tokens on the rendered element; absent in older tasks. */
   classes: z.array(z.string().min(1)).max(64).optional(),
+  /** Computed style facts observed in the browser at capture time; absent in older tasks. */
+  context: VisdiffStyleContextSchema.optional(),
 })
 
 /** Links element changes that came from one multi-selection operation. */
@@ -107,6 +129,7 @@ export const VisdiffTaskQueueSchema = z.array(VisdiffTaskSchema)
 export type VisdiffSource = z.infer<typeof VisdiffSourceSchema>
 export type VisdiffGeometry = z.infer<typeof VisdiffGeometrySchema>
 export type VisdiffChangeGeometry = z.infer<typeof VisdiffChangeGeometrySchema>
+export type VisdiffStyleContext = z.infer<typeof VisdiffStyleContextSchema>
 export type VisdiffEdit = z.infer<typeof VisdiffEditSchema>
 export type VisdiffTaskElement = z.infer<typeof VisdiffTaskElementSchema>
 export type VisdiffSelectionGroup = z.infer<typeof VisdiffSelectionGroupSchema>
